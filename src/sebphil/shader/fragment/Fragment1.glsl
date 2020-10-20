@@ -1,6 +1,8 @@
 #version 460 core
 
 #define MAX_NUMBER_OF_DIRLIGHTS 10
+// Shadow
+#define MAX_NUMBER_OF_SHADOWDIRLIGHTS 5
 #define MAX_NUMBER_OF_POINTLIGHTS 30
 
 struct Material{
@@ -17,6 +19,17 @@ struct Material{
 };
 
 struct DirectionLight{
+
+	vec3 direction;
+
+	vec3 diffuseColor;
+	vec3 specularColor;
+	vec3 ambientColor;
+
+};
+
+// Shadow
+struct ShadowDirLight{
 
 	vec3 direction;
 
@@ -43,10 +56,12 @@ struct PointLight{
 uniform Material material;
 
 uniform int dirLightsCount;
+// Shadow
+uniform int shadowDirLightsCount;
 uniform int pointLightsCount;
-uniform int testNum;
 
 uniform DirectionLight dirLights[MAX_NUMBER_OF_DIRLIGHTS];
+uniform DirectionLight shadowDirLights[MAX_NUMBER_OF_SHADOWDIRLIGHTS];
 uniform PointLight pointLights[MAX_NUMBER_OF_POINTLIGHTS];
 
 uniform vec3 viewPos;
@@ -61,7 +76,7 @@ uniform sampler2D shadowMap;
 
 out vec4 color;
 
-vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor);
+vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor);
 
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir);
@@ -100,7 +115,12 @@ void main() {
 	vec4 result = vec4(0, 0, 0, 1);
 
 	for(unsigned int i = 0; i < dirLightsCount; i++){
-		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor);
+		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, false);
+	}
+
+	// Shadow
+	for(unsigned int i = 0; i < shadowDirLightsCount; i++)  {
+		result += getDirLightColor(shadowDirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, true);
 	}
 
 	for(unsigned int i = 0; i < pointLightsCount; i++){
@@ -111,7 +131,7 @@ void main() {
 
 }
 
-vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor) {
+vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {
 
 	vec3 lightDir = normalize(-light.direction);
 	float diffuse = max(dot(normal, lightDir), 0.0);
@@ -123,7 +143,7 @@ vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diff
 	vec4 specularResult = spec * specularColor * vec4(light.specularColor, 1.0f);
 	vec4 ambientResult = ambientColor * vec4(light.ambientColor, 1.0f);
 
-	float shadow = calcShadow(fLightPosition, fNormal, lightDir);
+	float shadow = castShadow == true ? calcShadow(fLightPosition, fNormal, lightDir) : 1.0;
 
 	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
@@ -150,7 +170,7 @@ vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosit
 	return diffuseResult + specularResult + ambientResult;
 }
 
-// returns how much the fragment is in a Shadow (1.0: in Shadow; 0.0 not in Shadow)
+// returns how much the fragment is not in a Shadow (1.0: outside of Shadow; 0.0 in Shadow)
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir) {
 
 	float w = fLightPosition.w;

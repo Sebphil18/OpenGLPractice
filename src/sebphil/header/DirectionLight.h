@@ -18,7 +18,7 @@ public:
 	DirectionLight();
 	DirectionLight(std::size_t index);
 
-	void update(ShaderProgram& program) const;
+	virtual void update(ShaderProgram& program) const;
 
 	bool isEqualTo(const DirectionLight& dirLight) const;
 
@@ -32,5 +32,6 @@ public:
 	glm::vec3 getDiffuseColor() const;
 	glm::vec3 getSpecularColor() const;
 	glm::vec3 getAmbientColor() const;
+	std::size_t getIndex() const;
 
 };

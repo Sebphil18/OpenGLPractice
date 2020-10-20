@@ -24,6 +24,7 @@
 #include "header/PointLight.h"
 #include "header/LightBundle.h"
 #include "header/SkyBox.h"
+#include "header/ShadowDirLight.h"
 
 #include "stbi/stb_Image.h"
 
@@ -53,7 +54,6 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
-    (TODO: Install Visual Assist)
     TODO: Container for Models & Meshes (ShapeBundle)
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
@@ -311,10 +311,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     double frameTime = 0;
 
     LightBundle lightBundle;
-    lightBundle.dirLights.push_back(DirectionLight());
+    /*lightBundle.dirLights.push_back(DirectionLight());
 
     lightBundle.dirLights[0].setDiffuseColor(glm::vec3(1, 1, 0.9));
-    lightBundle.dirLights[0].setDirection(glm::vec3(-2.5f, -5.0f, 0.0f));
+    lightBundle.dirLights[0].setDirection(glm::vec3(-2.5f, -5.0f, 0.0f));*/
 
     ShaderProgram skyBoxProgram("src/sebphil/shader/vertex/VertexSkyBox.glsl", "src/sebphil/shader/fragment/FragmentSkyBox.glsl");
     skyBoxProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
@@ -340,32 +340,15 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
 
     const uint32_t depthWidth = 1024, depthHeight = 1024;
-
-    uint32_t depthFBO, depthTexture;
-    glGenFramebuffers(1, &depthFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
-
-    glGenTextures(1, &depthTexture);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, depthWidth, depthHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     ShaderProgram shadowProgram("src/sebphil/shader/vertex/VertexShadow.glsl", "src/sebphil/shader/fragment/FragmentShadow.glsl");
 
-    program.setUniform1i("shadowMap", 20);
+    ShadowDirLight shadowDirLight;
 
-    glActiveTexture(GL_TEXTURE20);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    program.setUniform1i("shadowDirLightsCount", 1);
+    program.setUniform1i("shadowMap", 10);
+    glActiveTexture(GL_TEXTURE10);
+    glBindTexture(GL_TEXTURE_2D, shadowDirLight.getShadowMapID());
 
     // modelLoader3.getLastMesh().addTexture({depthTexture, TextureType::diffuse});
 
@@ -403,21 +386,27 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
         //lightBundle.pointLights[0].setPosition(glm::vec3(10 * std::cos(xDirection), -1, 10 * std::sin(xDirection)));
         //lightBundle.pointLights[1].setPosition(glm::vec3(6 * std::sin(xDirection), 2, 6 * std::cos(xDirection)));
-        lightBundle.dirLights[0].setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
+        //lightBundle.dirLights[0].setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
         lightBundle.update(program);
+
+        shadowDirLight.setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
 
         float xColor = frame * 0.01;
 
         // draw - depthBuffer (Shadow)
 
-        glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
-        glViewport(0, 0, depthWidth, depthHeight);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        shadowDirLight.update(program);
+        shadowDirLight.updateProjMat();
+        shadowDirLight.updateViewMat();
+        shadowDirLight.bindFbo();
+        shadowDirLight.setViewport();
 
         glm::mat4 orthoMat = glm::ortho(-(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20.0f);
-        glm::mat4 lightViewMat = glm::lookAt(-lightBundle.dirLights[0].getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        glm::mat4 lightMat = orthoMat * lightViewMat;
+        glm::mat4 lightViewMat = glm::lookAt(-shadowDirLight.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        shadowDirLight.setProjMat(orthoMat);
+        shadowDirLight.setViewMat(lightViewMat);
 
+        glm::mat4 lightMat = shadowDirLight.getLightSpaceMat();
         shadowProgram.setUniformMat4f("transformViewMat", lightMat);
 
         for (size_t i = 0; i < models.size(); i++) {
@@ -428,7 +417,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         }
 
         // draw - main framebuffer
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, *width, *height);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Mesh.h"
 #include "header/Image.h"
+#include "header/ImageLoader.h"
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -35,12 +36,12 @@ private:
 	bool textureIsLoaded(const char* filePath);
 
 	void loadTexImg(const char* filePath, TextureType textureType, Mesh& mesh);
-	TextureContainer&& getTexImgContainer(const Image& img, TextureType textureType);
+	TextureContainer&& getTexImgContainer(const ImageLoader& imgLoader, TextureType textureType);
 	void addTextureToMesh(TextureContainer texture, Mesh& mesh);
-	unsigned int generateTexImg(const Image& img, TextureType textureType);
+	unsigned int generateTexImg(const ImageLoader& imgLoader, TextureType textureType);
 	unsigned int generateTexture();
 	void bindTexture(unsigned int textureID);
-	void setTexImgData(const Image& img, TextureType textureType);
+	void setTexImgData(const ImageLoader& imgLoader, TextureType textureType);
 	void generateMipmap();
 	void setTexParameter();
 
