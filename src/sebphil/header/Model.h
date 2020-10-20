@@ -45,6 +45,8 @@ private:
 	void generateMipmap();
 	void setTexParameter();
 
+	glm::mat4 getRotationMatrix() const;
+
 public:
 
 	Model();

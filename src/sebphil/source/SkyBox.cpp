@@ -43,10 +43,9 @@ void SkyBox::loadTextures(std::string paths[]) {
 
         const std::string& path = paths[i];
         
-        // TODO: ImageLoader
-        Image img = loadImg(path);
+        ImageLoader img;
+        img.loadRGB(path);
         setTexData(img, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
-        stbi_image_free(img.buffer);
 
     }
 
@@ -60,14 +59,11 @@ Image SkyBox::loadImg(const std::string& path) {
     return img;
 }
 
-void SkyBox::setTexData(Image& img, unsigned int texture) {
+void SkyBox::setTexData(ImageLoader& imgLoader, unsigned int texture) {
 
-    if (img.buffer) {
+    glm::vec2 dimensions = imgLoader.getDimensions();
+    glTexImage2D(texture, 0, GL_RGB, dimensions.x, dimensions.y, 0, GL_RGB, GL_UNSIGNED_BYTE, imgLoader.getBuffer());
 
-        glTexImage2D(texture, 0, GL_RGB, img.width, img.height, 0, GL_RGB, GL_UNSIGNED_BYTE, img.buffer);
-
-    } else
-        std::cout << "ERROR::SKYBOX::loadTextures::Could not load texture!" << std::endl;
 }
 
 void SkyBox::setTexParams() {

@@ -54,14 +54,14 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
+    TODO: [FIXED] Rotation & Translation
+    TODO: [INFO] Only Texture unit 0 - 19 are usable for object textures, others are used by lights
+
     TODO: Container for Models & Meshes (ShapeBundle)
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
     TODO: Container for Scene (Container for models and LightBundle, Camera)
-    TODO: Container for directional lights that cast shadows
-        TODO: Container for ShadowFBO
-    TODO: [BUG] Rotation & Translation
-    TODO: [INFO] Only Texture unit 0 - 19 are usable for object textures, others are used by lights
+    TODO: Add ShadowDitLight to LightBundle
 */
 
 int main() {
@@ -288,7 +288,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     ModelLoader modelLoader3("rec/shapes/plane/plane.obj");
     modelLoader3.getMesh(0).setMaterial({glm::vec4(0.9, 0.9, 0.9, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 32});
-    modelLoader3.setPosition(glm::vec3(0, 2, 0));
+    modelLoader3.setPosition(glm::vec3(0, -2, 0));
     modelLoader3.setRotation(glm::vec3(glm::radians(180.0f), glm::radians(90.0), 0));
 
     std::vector<Model*> models;

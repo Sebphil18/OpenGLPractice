@@ -180,17 +180,19 @@ std::size_t Model::getMeshCount() const {
 
 glm::mat4 Model::getWorldMat() const {
 
-	glm::mat4 worldMat(1);
-	worldMat = glm::scale(worldMat, transforms.size);
-	
-	// TODO: glm::mat4 getRotationMat(glm::vec3 angles);
-	glm::quat quaternion(transforms.rotation);
-	glm::mat4 rotationMat = glm::toMat4(quaternion);
-	worldMat *= rotationMat;
+	glm::mat4 worldMat = glm::mat4(1);
+	glm::mat4 translationMat = glm::translate(glm::mat4(1), transforms.translation);
+	glm::mat4 scaleMat = glm::scale(glm::mat4(1), transforms.size);
+	glm::mat4 rotationMat = getRotationMatrix();
 
-	worldMat = glm::translate(worldMat, transforms.translation);
+	worldMat = translationMat * rotationMat * scaleMat;
 
 	return worldMat;
+}
+
+glm::mat4 Model::getRotationMatrix() const {
+	glm::quat quaternion(transforms.rotation);
+	return glm::toMat4(quaternion);
 }
 
 glm::mat4 Model::getNormalMat() const {
