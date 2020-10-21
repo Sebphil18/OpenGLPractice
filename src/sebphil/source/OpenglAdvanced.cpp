@@ -25,6 +25,7 @@
 #include "header/LightBundle.h"
 #include "header/SkyBox.h"
 #include "header/ShadowDirLight.h"
+#include "header/ShadowLightBundle.h"
 
 #include "stbi/stb_Image.h"
 
@@ -54,14 +55,12 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
-    TODO: [FIXED] Rotation & Translation
     TODO: [INFO] Only Texture unit 0 - 19 are usable for object textures, others are used by lights
 
-    TODO: Container for Models & Meshes (ShapeBundle)
+    TODO: ShadowPointLight
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
-    TODO: Container for Scene (Container for models and LightBundle, Camera)
-    TODO: Add ShadowDitLight to LightBundle
+    TODO: Container for Models & Meshes (ShapeBundle)
 */
 
 int main() {
@@ -280,7 +279,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     modelLoader.getLastMesh().setMaterial({glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20});
     modelLoader.addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
     modelLoader.addTexture2D("rec/textures/BrickOcc.png", TextureType::specular, 0);
-    //modelLoader.setPosition(glm::vec3(-5, 0, 0));
 
     ModelLoader modelLoader2("rec/shapes/teapot/Teapot.obj");
     modelLoader2.setPosition(glm::vec3(10, 0, 0));
@@ -295,26 +293,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     models.push_back(&modelLoader);
     models.push_back(&modelLoader2);
     models.push_back(&modelLoader3);
-
-    DirectionLight dirLight1;
-    dirLight1.setDiffuseColor(glm::vec3(1, 0.3, 0.3));
-    //dirLight1.update(program);
-
-    PointLight pLight1;
-    pLight1.setIndex(0);
-    pLight1.setDiffuseColor(glm::vec3(0.3, 1, 0.3));
-    pLight1.setPosition(glm::vec3(-2, 0.5, -1));
-    //pLight1.update(program);
-
-    unsigned long frame = 0;
-    double timeAtLastFrame = 0;
-    double frameTime = 0;
-
-    LightBundle lightBundle;
-    /*lightBundle.dirLights.push_back(DirectionLight());
-
-    lightBundle.dirLights[0].setDiffuseColor(glm::vec3(1, 1, 0.9));
-    lightBundle.dirLights[0].setDirection(glm::vec3(-2.5f, -5.0f, 0.0f));*/
 
     ShaderProgram skyBoxProgram("src/sebphil/shader/vertex/VertexSkyBox.glsl", "src/sebphil/shader/fragment/FragmentSkyBox.glsl");
     skyBoxProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
@@ -337,46 +315,33 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     refractionProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
     refractionProgram.setUniform1f("n1", 1);
     refractionProgram.setUniform1f("n2", 1.33);
-
-
-    const uint32_t depthWidth = 1024, depthHeight = 1024;
     
     ShaderProgram shadowProgram("src/sebphil/shader/vertex/VertexShadow.glsl", "src/sebphil/shader/fragment/FragmentShadow.glsl");
 
-    ShadowDirLight shadowDirLight;
+    LightBundle lightBundle;
+    ShadowLightBundle shadowLightBundle;
+    shadowLightBundle.enableDirLight(program);
 
-    program.setUniform1i("shadowDirLightsCount", 1);
-    program.setUniform1i("shadowMap", 10);
-    glActiveTexture(GL_TEXTURE10);
-    glBindTexture(GL_TEXTURE_2D, shadowDirLight.getShadowMapID());
-
-    // modelLoader3.getLastMesh().addTexture({depthTexture, TextureType::diffuse});
+    unsigned long frame = 0;
+    double timeAtLastFrame = 0;
+    double frameTime = 0;
 
     while (!glfwWindowShouldClose(window)) {
 
         printFrameData(timeAtLastFrame);
 
-        //DO RENDERING HERE
-        //------------------------------------------------------------------
-
         glClearColor(0.01, 0.01, 0.01, 1.0);
-
         glClear(GL_DEPTH_BUFFER_BIT);
         glClear(GL_STENCIL_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        //DO RENDERING HERE
+        //------------------------------------------------------------------
 
         ubo.bind();
         ubo.setElementData(0, glm::value_ptr(cam.getProjectionMatrix()));
         ubo.setElementData(1, glm::value_ptr(cam.getViewMatrix()));
         ubo.unbind();
-
-        ////SetsUp fake framebuffer
-        //glClearColor(0.01, 0.01, 0.01, 1.0);
-        //glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        ////Draws objects to fake framebuffer
-        //vao.bind();
-        //glDrawElements(GL_TRIANGLES, ibo.getCount(), GL_UNSIGNED_INT, nullptr);
-        //vao.unbind();
 
         program.setUniformVec3f("viewPos", cam.getPosition());
         reflectionProgram.setUniformVec3f("viewPosition", cam.getPosition());
@@ -384,43 +349,14 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
         float xDirection = frame * 0.01;
 
-        //lightBundle.pointLights[0].setPosition(glm::vec3(10 * std::cos(xDirection), -1, 10 * std::sin(xDirection)));
-        //lightBundle.pointLights[1].setPosition(glm::vec3(6 * std::sin(xDirection), 2, 6 * std::cos(xDirection)));
-        //lightBundle.dirLights[0].setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
+        shadowLightBundle.dirLight.setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
+
         lightBundle.update(program);
-
-        shadowDirLight.setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
-
-        float xColor = frame * 0.01;
-
-        // draw - depthBuffer (Shadow)
-
-        shadowDirLight.update(program);
-        shadowDirLight.updateProjMat();
-        shadowDirLight.updateViewMat();
-        shadowDirLight.bindFbo();
-        shadowDirLight.setViewport();
-
-        glm::mat4 orthoMat = glm::ortho(-(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20.0f);
-        glm::mat4 lightViewMat = glm::lookAt(-shadowDirLight.getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        shadowDirLight.setProjMat(orthoMat);
-        shadowDirLight.setViewMat(lightViewMat);
-
-        glm::mat4 lightMat = shadowDirLight.getLightSpaceMat();
-        shadowProgram.setUniformMat4f("transformViewMat", lightMat);
-
-        for (size_t i = 0; i < models.size(); i++) {
-
-            shadowProgram.setUniformMat4f("worldMatrix", models[i]->getWorldMat());
-
-            models[i]->draw(shadowProgram);
-        }
+        shadowLightBundle.update(models, shadowProgram, program);
 
         // draw - main framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, *width, *height);
-
-        program.setUniformMat4f("lightViewMatrix", lightMat);
 
         for (size_t i = 0; i < models.size(); i++) {
 

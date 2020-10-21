@@ -10,7 +10,7 @@ private:
 	uint32_t shadowWidth;
 	uint32_t shadowHeight;
 
-	int left, right, top, bottom, near, far;
+	float left, right, top, bottom, near, far;
 
 	glm::mat4 projMat;
 	glm::mat4 viewMat;
@@ -21,6 +21,8 @@ private:
 	void setUpTextureParam();
 	void setUpFramebuffer();
 
+	void updateViewMat();
+
 public:
 	ShadowDirLight();
 	ShadowDirLight(uint32_t shadowWidth, uint32_t shadowHeight);
@@ -30,12 +32,11 @@ public:
 	void bindFbo();
 
 	void update(ShaderProgram& program) const override;
-	void updateProjMat();
-	void updateViewMat();
 
-	void setViewport();
+	void adjustViewport();
 	void setProjMat(glm::mat4 projMat);
 	void setViewMat(glm::mat4 viewMat);
+	void setDirection(glm::vec3 direction) override;
 
 	uint32_t getShadowMapID() const;
 	glm::mat4 getLightSpaceMat() const;

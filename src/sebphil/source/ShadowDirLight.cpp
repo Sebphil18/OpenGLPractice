@@ -40,7 +40,7 @@ void ShadowDirLight::initialize() {
 	setUpTexture();
 	setUpFramebuffer();
 
-	updateProjMat();
+	projMat = glm::ortho(left, right, bottom, top, near, far);
 	updateViewMat();
 
 }
@@ -77,7 +77,7 @@ void ShadowDirLight::bindFbo() {
 
 void ShadowDirLight::update(ShaderProgram& program) const {
 
-	std::string uniPrefix = "shadowDirLights[" + std::to_string(getIndex()) + "].";
+	std::string uniPrefix = "shadowDirLights[" + std::to_string(0) + "].";
 
 	program.setUniformVec3f(uniPrefix + "direction", getDirection());
 	program.setUniformVec3f(uniPrefix + "diffuseColor", getDiffuseColor());
@@ -86,15 +86,7 @@ void ShadowDirLight::update(ShaderProgram& program) const {
 
 }
 
-void ShadowDirLight::updateProjMat() {
-	projMat = glm::ortho(left, right, bottom, top, near, far);
-}
-
-void ShadowDirLight::updateViewMat() {
-	viewMat = glm::lookAt(-getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-}
-
-void ShadowDirLight::setViewport() {
+void ShadowDirLight::adjustViewport() {
 	glViewport(0, 0, shadowWidth, shadowHeight);
 }
 
@@ -104,6 +96,15 @@ void ShadowDirLight::setProjMat(glm::mat4 projMat) {
 
 void ShadowDirLight::setViewMat(glm::mat4 viewMat) {
 	this->viewMat = viewMat;
+}
+
+void ShadowDirLight::setDirection(glm::vec3 direction) {
+	this->direction = direction;
+	updateViewMat();
+}
+
+void ShadowDirLight::updateViewMat() {
+	viewMat = glm::lookAt(-direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 }
 
 uint32_t ShadowDirLight::getShadowMapID() const {

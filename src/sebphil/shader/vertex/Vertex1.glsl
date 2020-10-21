@@ -11,7 +11,7 @@ layout(std140) uniform matrices{
 	mat4 normalMatrix;			// 64 * 4
 };
 
-uniform mat4 lightViewMatrix;
+uniform mat4 dirLightSpaceMat;
 
 out vec3 fPosition;
 out vec3 fNormal;
@@ -26,7 +26,7 @@ void main() {
 	fPosition = vec3(worldMatrix * vec4(vPosition, 1));
 	fNormal = mat3(normalMatrix) * vNormal;
 
-	fLightPosition = lightViewMatrix * worldMatrix * vec4(vPosition, 1.0);
+	fLightPosition = dirLightSpaceMat * worldMatrix * vec4(vPosition, 1.0);
 
 	gl_Position = projectionMatrix * viewMatrix * worldMatrix * vec4(vPosition, 1.0);
 }

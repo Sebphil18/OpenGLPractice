@@ -8,10 +8,13 @@ private:
 
 	std::size_t index;
 
-	glm::vec3 direction;
 	glm::vec3 diffuseColor;
 	glm::vec3 specularColor;
 	glm::vec3 ambientColor;
+
+protected:
+
+	glm::vec3 direction;
 
 public:
 
@@ -23,7 +26,7 @@ public:
 	bool isEqualTo(const DirectionLight& dirLight) const;
 
 	void setIndex(std::size_t index);
-	void setDirection(glm::vec3 direction);
+	virtual void setDirection(glm::vec3 direction);
 	void setDiffuseColor(glm::vec3 diffuseColor);
 	void setSpecularColor(glm::vec3 specularColor);
 	void setAmbientColor(glm::vec3 ambientColor);
