@@ -5,40 +5,27 @@
 #include "glm/gtc/type_ptr.hpp"
 
 ShaderProgram::ShaderProgram(const std::string& vertexShaderFile, const std::string& fragmentShaderFile) {
+    vertexShader = getShaderId(vertexShaderFile, ShaderType::vertex);
+    fragmentShader = getShaderId(fragmentShaderFile, ShaderType::fragment);
+    geometryShader = 0;
 
-    createProgram();
-
-    vertexShader = getVertexShaderId(vertexShaderFile);
-    fragmentShader = getFragmentShaderId(fragmentShaderFile);
-
-    linkProgram();
-    validateProgram();
-
-    detachAllShader();
-    deleteAllShader();
-
+    buildProgram();
 }
 
-ShaderProgram::~ShaderProgram() {
-    deleteProgram();
+ShaderProgram::ShaderProgram(const std::string& vertexShaderFile, const std::string& gemShaderFile, const std::string& fragmentShaderFile) {
+    vertexShader = getShaderId(vertexShaderFile, ShaderType::vertex);
+    fragmentShader = getShaderId(fragmentShaderFile, ShaderType::fragment);
+    geometryShader = getShaderId(gemShaderFile, ShaderType::geometry);
+
+    buildProgram();
 }
 
-void ShaderProgram::createProgram() {
-    glID = glCreateProgram();
-}
-
-unsigned int ShaderProgram::getVertexShaderId(const std::string& shaderFile) {
+uint32_t ShaderProgram::getShaderId(const std::string& shaderFile, ShaderType shaderType) {
 
     std::string source = readFile(shaderFile);
+    uint32_t glType = getShaderTypeBinding(shaderType);
 
-    return compileShader(GL_VERTEX_SHADER, source);
-}
-
-unsigned int ShaderProgram::getFragmentShaderId(const std::string& shaderFile) {
-
-    std::string source = readFile(shaderFile);
-
-    return compileShader(GL_FRAGMENT_SHADER, source);
+    return compileShader(glType, source);
 }
 
 std::string ShaderProgram::readFile(const std::string& file) {
@@ -63,6 +50,20 @@ std::string ShaderProgram::writeFileToString(std::ifstream& fileInput) {
         src.append("\n" + line);
 
     return src;
+}
+
+uint32_t ShaderProgram::getShaderTypeBinding(ShaderType shaderType) {
+
+    switch (shaderType) {
+        case ShaderType::vertex:
+            return GL_VERTEX_SHADER;
+        case ShaderType::geometry:
+            return GL_GEOMETRY_SHADER;
+        case ShaderType::fragment:
+            return GL_FRAGMENT_SHADER;
+    }
+
+    return GL_VERTEX_SHADER;
 }
 
 unsigned int ShaderProgram::compileShader(unsigned int type, const std::string& source) {
@@ -122,8 +123,22 @@ void ShaderProgram::deleteShader(unsigned int shader) {
     glDeleteShader(shader);
 }
 
+void ShaderProgram::buildProgram() {
+    createProgram();
+    linkProgram();
+    validateProgram();
+
+    detachAllShader();
+    deleteAllShader();
+}
+
+void ShaderProgram::createProgram() {
+    glID = glCreateProgram();
+}
+
 void ShaderProgram::linkProgram() {
     glAttachShader(glID, vertexShader);
+    glAttachShader(glID, geometryShader);
     glAttachShader(glID, fragmentShader);
     glLinkProgram(glID);
 }
@@ -164,6 +179,10 @@ void ShaderProgram::deleteInvalidProgram(bool isProgramValid) {
 
 }
 
+ShaderProgram::~ShaderProgram() {
+    deleteProgram();
+}
+
 void ShaderProgram::deleteProgram() {
     glDeleteProgram(glID);
     glID = 0;
@@ -172,13 +191,16 @@ void ShaderProgram::deleteProgram() {
 void ShaderProgram::detachAllShader() {
     glDetachShader(glID, vertexShader);
     glDetachShader(glID, fragmentShader);
+    glDetachShader(glID, geometryShader);
 }
 
 void ShaderProgram::deleteAllShader() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    glDeleteShader(geometryShader);
     vertexShader = 0;
     fragmentShader = 0;
+    geometryShader = 0;
 }
 
 void ShaderProgram::use() {

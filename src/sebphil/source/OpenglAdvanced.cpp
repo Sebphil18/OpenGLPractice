@@ -55,8 +55,9 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
-    TODO: [INFO] Only Texture unit 0 - 19 are usable for object textures, others are used by lights
-
+    TODO: [BUG/ERROR] ShaderProgram can not be linked when output/input variables are used in geom. shader
+        -> [FIX] geom. shader always takes arrays as input (multiple vertices)
+    TODO: Implement geometryshader in pipeline (change Vertex1.glsl & Fragement1.glsl)
     TODO: ShadowPointLight
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
@@ -321,6 +322,8 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
     shadowLightBundle.enableDirLight(program);
+
+    ShaderProgram testProgram("src/sebphil/shader/vertex/VertexStandard.glsl", "src/sebphil/shader/geometry/GeoStandard.glsl","src/sebphil/shader/fragment/FragmentStandard.glsl");
 
     unsigned long frame = 0;
     double timeAtLastFrame = 0;

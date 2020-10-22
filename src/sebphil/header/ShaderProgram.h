@@ -5,23 +5,28 @@
 #include <glm/glm.hpp>
 #include "header/UniformBuffer.h"
 
+enum class ShaderType {vertex, geometry, fragment};
+
 class ShaderProgram {
 
-private:
+	// TODO: rework getShaderID (every shader should work)
+	// TODO: add support for geometry shader
 
-	unsigned int glID, vertexShader, fragmentShader;
+private:
+	unsigned int glID, vertexShader, geometryShader, fragmentShader;
 
 	std::unordered_map<std::string, int> uniformLocations;
 
 	int getUniformLocation(std::string name);
-
+	
+	void buildProgram();
 	unsigned int compileShader(unsigned int type, const std::string& source);
 
 	std::string readFile(const std::string& file);
 
 	void createProgram();
-	unsigned int getVertexShaderId(const std::string& shaderFile);
-	unsigned int getFragmentShaderId(const std::string& shaderFile);
+	uint32_t getShaderId(const std::string& shaderFile, ShaderType shaderType);
+	uint32_t getShaderTypeBinding(ShaderType shaderType);
 	void linkProgram();
 	void validateProgram();
 	bool programIsLinked();
@@ -41,8 +46,8 @@ private:
 	bool isLocationCached(const std::string& name);
 
 public:
-
 	ShaderProgram(const std::string& vertexShaderFile, const std::string& fragmentShaderFile);
+	ShaderProgram(const std::string& vertexShaderFile, const std::string& gemShaderFile, const std::string& fragmentShaderFile);
 	~ShaderProgram();
 
 	void use();
@@ -50,9 +55,7 @@ public:
 	void bindUniformBuffer(unsigned int slot, const char* uniformBlock);
 
 	void setUniform1i(const std::string& name, int integer);
-
 	void setUniform1b(const std::string& name, bool boolean);
-
 	void setUniform1f(const std::string& name, float decimal);
 
 	void setUniformVec3f(const std::string& name, float x, float y, float z);
@@ -65,4 +68,3 @@ public:
 	unsigned int getID() const;
 
 };
-
