@@ -259,7 +259,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
          1.0f,  1.0f, 1.0f, 1.0f
     };
 
-    ShaderProgram program("src/sebphil/shader/vertex/Vertex1.glsl", "src/sebphil/shader/fragment/Fragment1.glsl");
+    ShaderProgram program(
+        "src/sebphil/shader/vertex/VertexPhong.glsl", 
+        "src/sebphil/shader/geometry/GeoPhong.glsl", 
+        "src/sebphil/shader/fragment/FragmentPhong.glsl");
 
     UniformBuffer ubo(4, 4 * sizeof(glm::mat4));
     ubo.setElementType(0, UniformType::matrix4);
@@ -322,8 +325,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
     shadowLightBundle.enableDirLight(program);
-
-    ShaderProgram testProgram("src/sebphil/shader/vertex/VertexStandard.glsl", "src/sebphil/shader/geometry/GeoStandard.glsl","src/sebphil/shader/fragment/FragmentStandard.glsl");
 
     unsigned long frame = 0;
     double timeAtLastFrame = 0;

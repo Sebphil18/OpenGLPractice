@@ -4,6 +4,7 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices=3) out;
 
 in vec3 gPos[];
+out vec3 fPos;
 
 void main() {
 

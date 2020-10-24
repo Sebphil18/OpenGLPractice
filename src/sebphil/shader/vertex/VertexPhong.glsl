@@ -13,20 +13,25 @@ layout(std140) uniform matrices{
 
 uniform mat4 dirLightSpaceMat;
 
-out vec3 fPosition;
-out vec3 fNormal;
-out vec2 fTexCoord;
+out vec3 gPosition;
+out vec3 gNormal;
+out vec2 gTexCoord;
+out vec4 gLightPosition;
 
-// Shadow
-out vec4 fLightPosition;
+out VertexData {
+	vec3 gPosition;
+	vec3 gNormal;
+	vec2 gTexCoord;
+	vec4 gLightPosition;
+} vertexOut;
 
 void main() {
 
-	fTexCoord = vTexCoord;
-	fPosition = vec3(worldMatrix * vec4(vPosition, 1));
-	fNormal = mat3(normalMatrix) * vNormal;
+	vertexOut.gTexCoord = vTexCoord;
+	vertexOut.gPosition = vec3(worldMatrix * vec4(vPosition, 1));
+	vertexOut.gNormal = mat3(normalMatrix) * vNormal;
 
-	fLightPosition = dirLightSpaceMat * worldMatrix * vec4(vPosition, 1.0);
+	vertexOut.gLightPosition = dirLightSpaceMat * worldMatrix * vec4(vPosition, 1.0);
 
 	gl_Position = projectionMatrix * viewMatrix * worldMatrix * vec4(vPosition, 1.0);
 }
