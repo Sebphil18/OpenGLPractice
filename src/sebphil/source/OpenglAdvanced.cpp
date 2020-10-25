@@ -26,6 +26,7 @@
 #include "header/SkyBox.h"
 #include "header/ShadowDirLight.h"
 #include "header/ShadowLightBundle.h"
+#include "header/ShadowPointLight.h"
 
 #include "stbi/stb_Image.h"
 
@@ -55,10 +56,7 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
-    TODO: [BUG/ERROR] ShaderProgram can not be linked when output/input variables are used in geom. shader
-        -> [FIX] geom. shader always takes arrays as input (multiple vertices)
-    TODO: Implement geometryshader in pipeline (change Vertex1.glsl & Fragement1.glsl)
-    TODO: ShadowPointLight
+    TODO: Add ShadowPointLight to ShadowLightBundle
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
     TODO: Container for Models & Meshes (ShapeBundle)
@@ -210,6 +208,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     float cube_vertices[] = {
         // front
+        // Position         Normal    TexCoord
         -1.0, -1.0,  1.0,   0, 0, 0,    1, 0,
          1.0, -1.0,  1.0,   0, 0, 0,    0, 1,
          1.0,  1.0,  1.0,   0, 0, 0,    -1, 0,
@@ -249,7 +248,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     };
 
     float screenQuadVertices[] = {
-        // positions  // texCoords
+        // positions  texCoords
         -1.0f,  1.0f, 0.0f, 1.0f,
         -1.0f, -1.0f, 0.0f, 0.0f,
          1.0f, -1.0f, 1.0f, 0.0f,
@@ -300,6 +299,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     ShaderProgram skyBoxProgram("src/sebphil/shader/vertex/VertexSkyBox.glsl", "src/sebphil/shader/fragment/FragmentSkyBox.glsl");
     skyBoxProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
+    skyBoxProgram.setUniform1i("skybox", 1);
 
     std::string paths[] = {
         "rec/skyboxes/right.jpg",
@@ -324,11 +324,20 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
-    shadowLightBundle.enableDirLight(program);
+
+    ShadowPointLight shadowPointLight;
+    shadowPointLight.setPosition(glm::vec3(1, 4, 1));
+
+    ShaderProgram pointShadowProgram(
+        "src/sebphil/shader/vertex/VertexPointShadow.glsl", 
+        "src/sebphil/shader/geometry/GeoPointShadow.glsl", 
+        "src/sebphil/shader/fragment/FragmentPointShadow.glsl");
 
     unsigned long frame = 0;
     double timeAtLastFrame = 0;
     double frameTime = 0;
+
+    //lightBundle.update(program);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -352,11 +361,12 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         refractionProgram.setUniformVec3f("viewPosition", cam.getPosition());
 
         float xDirection = frame * 0.01;
-
-        shadowLightBundle.dirLight.setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
+        shadowPointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
 
         lightBundle.update(program);
         shadowLightBundle.update(models, shadowProgram, program);
+
+        shadowPointLight.update(models, pointShadowProgram, program);
 
         // draw - main framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -373,7 +383,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         }
 
         box.draw(skyBoxProgram);
-
 
         //------------------------------------------------------------------
 

@@ -75,9 +75,8 @@ void SkyBox::setTexParams() {
 }
 
 void SkyBox::draw(ShaderProgram& program) {
-
     program.use();
-
+    
     setUpDepthTest();
     bindTexture();
 
@@ -86,7 +85,6 @@ void SkyBox::draw(ShaderProgram& program) {
     vao.unbind();
 
     restoreDepthTest();
-
 }
 
 void SkyBox::setUpDepthTest() {
@@ -95,6 +93,7 @@ void SkyBox::setUpDepthTest() {
 }
 
 void SkyBox::bindTexture() {
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 }
 

@@ -8,12 +8,14 @@ private:
 
 	std::size_t index;
 
-	float constK, linearK, quadraticK;
-
-	glm::vec3 position;
 	glm::vec3 diffuseColor;
 	glm::vec3 specularColor;
 	glm::vec3 ambientColor;
+
+protected:
+
+	glm::vec3 position;
+	float constK, linearK, quadraticK;
 
 	void updateK(ShaderProgram& program, const std::string& uniName) const;
 	void updatePosition(ShaderProgram& program, const std::string& uniName) const;
@@ -24,12 +26,12 @@ public:
 	PointLight();
 	PointLight(std::size_t index);
 
-	void update(ShaderProgram& program) const;
+	virtual void update(ShaderProgram& program) const;
 
 	bool isEqualTo(const PointLight& pLight) const;
 
 	void setK(float constK, float linearK, float quadraticK);
-	void setPosition(glm::vec3 position);
+	virtual void setPosition(glm::vec3 position);
 	void setDiffuseColor(glm::vec3 diffuseColor);
 	void setSpecularColor(glm::vec3 specularColor);
 	void setAmbientColor(glm::vec3 ambientColor);

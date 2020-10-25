@@ -1,8 +1,9 @@
 #version 460 core
 
-#define MAX_NUMBER_OF_DIRLIGHTS 10
-#define MAX_NUMBER_OF_SHADOWDIRLIGHTS 5
-#define MAX_NUMBER_OF_POINTLIGHTS 30
+#define MAX_NUMBER_OF_DIRLIGHTS 5
+#define MAX_NUMBER_OF_SHADOW_DIR_LIGHTS 1
+#define MAX_NUMBER_OF_POINTLIGHTS 10
+#define MAX_NUMBER_OF_SHADOW_POINT_LIGHTS 5
 
 struct Material{
 	float shininess;
@@ -46,14 +47,19 @@ uniform Material material;
 uniform int dirLightsCount;
 uniform int shadowDirLightsCount;
 uniform int pointLightsCount;
+uniform int shadowPointLightsCount;
+
+uniform float far;
 
 uniform DirectionLight dirLights[MAX_NUMBER_OF_DIRLIGHTS];
-uniform DirectionLight shadowDirLights[MAX_NUMBER_OF_SHADOWDIRLIGHTS];
+uniform DirectionLight shadowDirLights[MAX_NUMBER_OF_SHADOW_DIR_LIGHTS];
 uniform PointLight pointLights[MAX_NUMBER_OF_POINTLIGHTS];
+uniform PointLight shadowPointLights[MAX_NUMBER_OF_SHADOW_POINT_LIGHTS];
 
 uniform vec3 viewPos;
 
 uniform sampler2D shadowMap;
+uniform samplerCube pointShadowMap;
 
 in FragmentData {
 	vec3 fPosition;
@@ -65,8 +71,9 @@ in FragmentData {
 out vec4 color;
 
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
-vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor);
+vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir);
+float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal);
 
 void main() {
 	
@@ -105,13 +112,18 @@ void main() {
 		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, false);
 	}
 
-	// Shadow
+	// ShadowDirLight
 	for(unsigned int i = 0; i < shadowDirLightsCount; i++)  {
 		result += getDirLightColor(shadowDirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, true);
 	}
 
 	for(unsigned int i = 0; i < pointLightsCount; i++){
-		result += getPointLightColor(pointLights[i], normal, viewDir, fragmentIn.fPosition, diffuseColor, specularColor, ambientColor);
+		result += getPointLightColor(pointLights[i], normal, viewDir, fragmentIn.fPosition, diffuseColor, specularColor, ambientColor, false);
+	}
+
+	// ShadowPointLight
+	for(unsigned int i = 0; i < shadowPointLightsCount; i++) {
+		result += getPointLightColor(shadowPointLights[i], normal, viewDir, fragmentIn.fPosition, diffuseColor, specularColor, ambientColor, true);
 	}
 
 	color = result;
@@ -135,7 +147,7 @@ vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diff
 	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
 
-vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor){
+vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow){
 
 	vec3 dirToLight = normalize(light.position - fPosition);
 	vec3 halfway = normalize(viewDir + dirToLight);
@@ -154,7 +166,9 @@ vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosit
 	//ambient
 	vec4 ambientResult = ambientColor * vec4(light.ambientColor, 1) * attentuation;
 
-	return diffuseResult + specularResult + ambientResult;
+	float shadow = castShadow == true ? calcPointShadow(fPosition, light.position, fragmentIn.fNormal) : 1.0;
+
+	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
 
 // returns how much the fragment is not in a Shadow (1.0: outside of Shadow; 0.0 in Shadow)
@@ -187,6 +201,23 @@ float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir) {
 	if(currentDepth > 1.0) {
 		shadow = 1.0;
 	}
+
+	return shadow;
+}
+
+float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal) {
+	
+	float shadow = 0.0f;
+
+	vec3 lightDir = fPosition - lightPosition;
+
+	float nearestDepth = texture(pointShadowMap, lightDir).r * far;
+	float currentDepth = length(lightDir);
+
+	if(nearestDepth < currentDepth)
+		shadow = 0.0f;
+	else
+		shadow = 1.0f;
 
 	return shadow;
 }
