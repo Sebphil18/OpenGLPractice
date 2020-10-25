@@ -56,6 +56,8 @@ double frameTime = 0;
 float dynamicVar = 0;
 
 /*
+    TODO: [REWORK] Move uniform settings from ShadowLightBundle & "render to ShadowMap" into ShadowDirLight 
+    TODO: [REWORK] Mesh (hide vertices and indices)
     TODO: Add ShadowPointLight to ShadowLightBundle
     TODO: Container for setting matrices (with uniformBuffer)
     TODO: Container for Cameras; switch between multiple cameras
@@ -324,9 +326,8 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
-
-    ShadowPointLight shadowPointLight;
-    shadowPointLight.setPosition(glm::vec3(1, 4, 1));
+    shadowLightBundle.enablePointLight(program);
+    shadowLightBundle.enableDirLight(program);
 
     ShaderProgram pointShadowProgram(
         "src/sebphil/shader/vertex/VertexPointShadow.glsl", 
@@ -361,12 +362,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         refractionProgram.setUniformVec3f("viewPosition", cam.getPosition());
 
         float xDirection = frame * 0.01;
-        shadowPointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
+        shadowLightBundle.pointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
 
         lightBundle.update(program);
-        shadowLightBundle.update(models, shadowProgram, program);
-
-        shadowPointLight.update(models, pointShadowProgram, program);
+        shadowLightBundle.update(models, shadowProgram, pointShadowProgram, program);
 
         // draw - main framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

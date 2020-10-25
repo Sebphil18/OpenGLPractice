@@ -1,3 +1,4 @@
+#pragma once
 #include "header/PointLight.h"
 #include "header/ShaderProgram.h"
 #include "header/Model.h"
@@ -30,7 +31,7 @@ private:
 	void updateShadow(ShaderProgram& program, ShaderProgram& shadowProgram);
 
 public:
-	
+
 	ShadowPointLight();
 
 	void update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program);
