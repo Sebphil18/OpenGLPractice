@@ -55,8 +55,10 @@ double frameTime = 0;
 
 float dynamicVar = 0;
 
+Model terrain;
+std::vector<unsigned int> terrIndices;
+
 /*
-    TODO: [REWORK] Move uniform settings from ShadowLightBundle & "render to ShadowMap" into ShadowDirLight 
     TODO: [REWORK] Mesh (hide vertices and indices)
     TODO: Add ShadowPointLight to ShadowLightBundle
     TODO: Container for setting matrices (with uniformBuffer)
@@ -316,23 +318,56 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     ShaderProgram reflectionProgram("src/sebphil/shader/vertex/VertexReflection.glsl", "src/sebphil/shader/fragment/FragmentReflection.glsl");
     reflectionProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
+    reflectionProgram.setUniform1i("skybox", 1);
 
     ShaderProgram refractionProgram("src/sebphil/shader/vertex/VertexRefraction.glsl", "src/sebphil/shader/fragment/FragmentRefraction.glsl");
     refractionProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
     refractionProgram.setUniform1f("n1", 1);
     refractionProgram.setUniform1f("n2", 1.33);
+    refractionProgram.setUniform1i("skybox", 1);
     
     ShaderProgram shadowProgram("src/sebphil/shader/vertex/VertexShadow.glsl", "src/sebphil/shader/fragment/FragmentShadow.glsl");
 
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
-    shadowLightBundle.enablePointLight(program);
+    //shadowLightBundle.enablePointLight(program);
     shadowLightBundle.enableDirLight(program);
+
+    //lightBundle.pointLights.push_back(PointLight());
+    /*PointLight& pLight = lightBundle.pointLights[0];
+    pLight.setPosition(glm::vec3(6, 4, 6));
+    pLight.setDiffuseColor(glm::vec3(1, 1, 0.85));*/
 
     ShaderProgram pointShadowProgram(
         "src/sebphil/shader/vertex/VertexPointShadow.glsl", 
         "src/sebphil/shader/geometry/GeoPointShadow.glsl", 
         "src/sebphil/shader/fragment/FragmentPointShadow.glsl");
+
+    terrain.pushbackNewMesh();
+    Mesh& terrMesh = terrain.getLastMesh();
+    terrMesh = terrain.getLastMesh();
+
+    for (uint32_t x = 0; x < 20 - 1; x++) {
+        for (uint32_t z = 0; z < 20 - 1; z++) {
+            terrIndices.push_back(z * 20 + x);
+            terrIndices.push_back(z * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x);
+
+            terrIndices.push_back(z * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x);
+        }
+    }
+
+    std::vector<Vertex> terrVertices;
+    for (uint32_t x = 0; x < 20; x++) {
+        for (uint32_t z = 0; z < 20; z++) {
+            float y = glm::simplex(glm::vec3(x, 0, z));
+            terrVertices.push_back({glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0)});
+        }
+    }
+    terrMesh.setData(terrVertices, terrIndices);
+    models.push_back(&terrain);
 
     unsigned long frame = 0;
     double timeAtLastFrame = 0;
@@ -396,9 +431,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
 }
 
-/*
- Resizes GL-Viewport to width and height.
-*/
 void resizeFrameBuffer(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     cam.setWidth(width);
@@ -440,6 +472,24 @@ void processInput(GLFWwindow* window) {
     }
     else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
         dynamicVar -= 0.1;
+    } 
+    else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+
+        dynamicVar += 0.01;
+
+        Mesh& terrMesh = terrain.getLastMesh();
+        std::vector<Vertex> terrVertices;
+        for (uint32_t x = 0; x < 20; x++) {
+            for (uint32_t z = 0; z < 20; z++) {
+                float offX = (x + dynamicVar * 2) * 0.4;
+                float offZ = (z + dynamicVar * 2) * 0.4;
+                float offY = dynamicVar;
+                float y = glm::simplex(glm::vec3(offX, offY, offZ)) * 0.7;
+                terrVertices.push_back({ glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0) });
+            }
+        }
+        terrMesh.setData(terrVertices, terrIndices);
+
     }
 
 }

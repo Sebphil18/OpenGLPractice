@@ -3,7 +3,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 ShadowDirLight::ShadowDirLight() :
-	shadowWidth(1024), shadowHeight(1024), 
+	shadowWidth(4096), shadowHeight(4096),
 	left(-20), right(20), bottom(-20), top(20), near(-20), far(20) {
 
 	initialize();
@@ -18,7 +18,7 @@ ShadowDirLight::ShadowDirLight(uint32_t shadowWidth, uint32_t shadowHeight) :
 }
 
 ShadowDirLight::ShadowDirLight(std::size_t index) :
-	shadowWidth(1024), shadowHeight(1024),
+	shadowWidth(4096), shadowHeight(4096),
 	left(-20), right(20), bottom(-20), top(20), near(-20), far(20),
 	DirectionLight(index) {
 
@@ -40,7 +40,7 @@ void ShadowDirLight::initialize() {
 	setUpTexture();
 	setUpFramebuffer();
 
-	projMat = glm::ortho(left, right, bottom, top, near, far);
+	updateProjMat();
 	updateViewMat();
 
 }
@@ -70,9 +70,62 @@ void ShadowDirLight::setUpFramebuffer() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void ShadowDirLight::update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
+	
+	updateProjMat();
+	updateViewMat();
+	updateLightSpaceMat(shadowProgram, program);
+
+	renderModels(models, shadowProgram);
+
+	update(program);
+
+}
+
+void ShadowDirLight::updateProjMat() {
+	projMat = glm::ortho(left, right, bottom, top, near, far);
+}
+
+void ShadowDirLight::updateViewMat() {
+	viewMat = glm::lookAt(-direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+}
+
+void ShadowDirLight::updateLightSpaceMat(ShaderProgram& shadowProgram, ShaderProgram& program) {
+	glm::mat4 lightSpaceMat = getLightSpaceMat();
+	shadowProgram.setUniformMat4f("dirLightSpaceMat", lightSpaceMat);
+	program.setUniformMat4f("dirLightSpaceMat", lightSpaceMat);
+}
+
+glm::mat4 ShadowDirLight::getLightSpaceMat() const {
+	return projMat * viewMat;
+}
+
+void ShadowDirLight::renderModels(const std::vector<Model*> models, ShaderProgram& shadowProgram) {
+
+	bindFbo();
+	adjustViewport();
+
+	for (std::size_t i = 0; i < models.size(); i++) {
+		Model* model = models[i];
+		shadowProgram.setUniformMat4f("worldMatrix", model->getWorldMat());
+		model->draw(shadowProgram);
+	}
+
+	unbindFbo();
+
+}
+
 void ShadowDirLight::bindFbo() {
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
 	glClear(GL_DEPTH_BUFFER_BIT);
+}
+
+void ShadowDirLight::adjustViewport() {
+	glViewport(0, 0, shadowWidth, shadowHeight);
+}
+
+void ShadowDirLight::unbindFbo() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void ShadowDirLight::update(ShaderProgram& program) const {
@@ -84,10 +137,6 @@ void ShadowDirLight::update(ShaderProgram& program) const {
 	program.setUniformVec3f(uniPrefix + "specularColor", getSpecularColor());
 	program.setUniformVec3f(uniPrefix + "ambientColor", getAmbientColor());
 
-}
-
-void ShadowDirLight::adjustViewport() {
-	glViewport(0, 0, shadowWidth, shadowHeight);
 }
 
 void ShadowDirLight::setProjMat(glm::mat4 projMat) {
@@ -103,14 +152,6 @@ void ShadowDirLight::setDirection(glm::vec3 direction) {
 	updateViewMat();
 }
 
-void ShadowDirLight::updateViewMat() {
-	viewMat = glm::lookAt(-direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-}
-
 uint32_t ShadowDirLight::getShadowMapID() const {
 	return shadowMap;
-}
-
-glm::mat4 ShadowDirLight::getLightSpaceMat() const {
-	return projMat * viewMat;
 }

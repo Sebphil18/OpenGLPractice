@@ -56,15 +56,6 @@ void ShadowPointLight::generateProjMat() {
 	projMat = glm::perspective(glm::radians(90.0f), aspRatio, near, far);
 }
 
-void ShadowPointLight::generateLightSpaceMat() {
-	lightSpaceMat[0] = projMat * glm::lookAt(position, position + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0));
-	lightSpaceMat[1] = projMat * glm::lookAt(position, position + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0));
-	lightSpaceMat[2] = projMat * glm::lookAt(position, position + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
-	lightSpaceMat[3] = projMat * glm::lookAt(position, position + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
-	lightSpaceMat[4] = projMat * glm::lookAt(position, position + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0));
-	lightSpaceMat[5] = projMat * glm::lookAt(position, position + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0));
-}
-
 void ShadowPointLight::update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
 
 	std::string uniName = "shadowPointLights[0].";
@@ -74,6 +65,7 @@ void ShadowPointLight::update(const std::vector<Model*>& models, ShaderProgram& 
 
 	updateShadow(program, shadowProgram);
 	updateLightSpaceMat(shadowProgram);
+
 	renderModels(models, shadowProgram);
 
 	updateK(program, uniName);
@@ -108,7 +100,6 @@ void ShadowPointLight::updateShadow(ShaderProgram& program, ShaderProgram& shado
 	shadowProgram.setUniform1f("far", far);
 	shadowProgram.setUniformVec3f("lightPos", position);
 
-	program.setUniform1i("shadowPointLightsCount", 1);
 	program.setUniform1i("pointShadowMap", 26);
 	program.setUniform1f("far", far);
 }
@@ -116,4 +107,13 @@ void ShadowPointLight::updateShadow(ShaderProgram& program, ShaderProgram& shado
 void ShadowPointLight::setPosition(glm::vec3 position) {
 	this->position = position;
 	generateLightSpaceMat();
+}
+
+void ShadowPointLight::generateLightSpaceMat() {
+	lightSpaceMat[0] = projMat * glm::lookAt(position, position + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0));
+	lightSpaceMat[1] = projMat * glm::lookAt(position, position + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0));
+	lightSpaceMat[2] = projMat * glm::lookAt(position, position + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
+	lightSpaceMat[3] = projMat * glm::lookAt(position, position + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
+	lightSpaceMat[4] = projMat * glm::lookAt(position, position + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0));
+	lightSpaceMat[5] = projMat * glm::lookAt(position, position + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0));
 }

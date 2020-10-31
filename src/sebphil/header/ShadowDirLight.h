@@ -1,5 +1,7 @@
 #pragma once
 #include "header/DirectionLight.h"
+#include "header/Model.h"
+#include <vector>
 
 class ShadowDirLight : public DirectionLight {
 
@@ -22,6 +24,15 @@ private:
 	void setUpFramebuffer();
 
 	void updateViewMat();
+	void updateProjMat();
+	void updateLightSpaceMat(ShaderProgram& shadowProgram, ShaderProgram& program);
+	
+	void renderModels(const std::vector<Model*> models, ShaderProgram& shadowProgram);
+	void bindFbo();
+	void adjustViewport();
+	void unbindFbo();
+
+	void update(ShaderProgram& program) const override;
 
 public:
 	ShadowDirLight();
@@ -29,11 +40,8 @@ public:
 	ShadowDirLight(std::size_t index);
 	ShadowDirLight(std::size_t index, uint32_t shadowWidth, uint32_t shadowHeight);
 
-	void bindFbo();
+	void update(const std::vector<Model*>& models, ShaderProgram& program, ShaderProgram& shadowProgram);
 
-	void update(ShaderProgram& program) const override;
-
-	void adjustViewport();
 	void setProjMat(glm::mat4 projMat);
 	void setViewMat(glm::mat4 viewMat);
 	void setDirection(glm::vec3 direction) override;
