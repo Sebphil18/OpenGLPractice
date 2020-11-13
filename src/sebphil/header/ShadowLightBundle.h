@@ -12,8 +12,6 @@ public:
 	ShadowPointLight pointLight;
 
 	void update(std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& pointShadowProgram, ShaderProgram& program);
-	void updateDirLight(std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program);
-	void updatePointLight(std::vector<Model*>& models, ShaderProgram& pointShadowProgram, ShaderProgram& program);
 
 	void enableDirLight(ShaderProgram& program);
 	void disableDirLight(ShaderProgram& program);

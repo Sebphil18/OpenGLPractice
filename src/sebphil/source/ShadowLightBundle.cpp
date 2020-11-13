@@ -24,11 +24,3 @@ void ShadowLightBundle::update(std::vector<Model*>& models, ShaderProgram& shado
     dirLight.update(models, shadowProgram, program);
     pointLight.update(models, pointShadowProgram, program);
 }
-
-void ShadowLightBundle::updateDirLight(std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
-    dirLight.update(models, shadowProgram, program);
-}
-
-void ShadowLightBundle::updatePointLight(std::vector<Model*>& models, ShaderProgram& pointShadowProgram, ShaderProgram& program) {
-    pointLight.update(models, pointShadowProgram, program);
-}

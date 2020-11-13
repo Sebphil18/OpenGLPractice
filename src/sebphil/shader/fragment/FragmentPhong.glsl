@@ -211,13 +211,28 @@ float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal) {
 
 	vec3 lightDir = fPosition - lightPosition;
 
-	float nearestDepth = texture(pointShadowMap, lightDir).r * far;
 	float currentDepth = length(lightDir);
 
-	if(nearestDepth < currentDepth)
-		shadow = 0.0f;
-	else
-		shadow = 1.0f;
+	float samples = 23;
+	float radius = 0.05;
+	
+	vec3 sampleVecs[23] = vec3[] (
+		vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1),
+		vec3(-1, 0, 0), vec3(0, -1, 0), vec3(0, 0, -1),
+		vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, 1, 0), vec3(-1, -1, 0),
+		vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+		vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, 1, -1), vec3(0, -1, -1),
+		vec3(1, 1, 1), vec3(-1, -1, -1), vec3(-1, -1, 1), vec3(-1, 1, -1), vec3(1, -1, -1)
+	);
+
+	for(unsigned int i = 0; i < samples; i++) {
+		float nearestDepth = texture(pointShadowMap, lightDir + sampleVecs[i] * radius).r * far;
+
+		if(nearestDepth > currentDepth)
+			shadow += 1.0f;
+	}
+
+	shadow /= samples;
 
 	return shadow;
 }

@@ -330,8 +330,9 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
-    //shadowLightBundle.enablePointLight(program);
-    shadowLightBundle.enableDirLight(program);
+    shadowLightBundle.enablePointLight(program);
+    shadowLightBundle.pointLight.setPosition(glm::vec3(0, 8, 0));
+    //shadowLightBundle.enableDirLight(program);
 
     //lightBundle.pointLights.push_back(PointLight());
     /*PointLight& pLight = lightBundle.pointLights[0];
@@ -345,7 +346,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     terrain.pushbackNewMesh();
     Mesh& terrMesh = terrain.getLastMesh();
-    terrMesh = terrain.getLastMesh();
 
     for (uint32_t x = 0; x < 20 - 1; x++) {
         for (uint32_t z = 0; z < 20 - 1; z++) {
@@ -397,7 +397,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         refractionProgram.setUniformVec3f("viewPosition", cam.getPosition());
 
         float xDirection = frame * 0.01;
-        shadowLightBundle.pointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
+        //shadowLightBundle.pointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
 
         lightBundle.update(program);
         shadowLightBundle.update(models, shadowProgram, pointShadowProgram, program);

@@ -5,6 +5,7 @@
 #include <vector>
 
 ModelLoader::ModelLoader() {
+	scene = nullptr;
 }
 
 ModelLoader::ModelLoader(const std::string& filePath) {
