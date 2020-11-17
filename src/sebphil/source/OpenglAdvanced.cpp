@@ -24,6 +24,9 @@
 #include "header/PointLight.h"
 #include "header/LightBundle.h"
 #include "header/SkyBox.h"
+#include "header/ShadowDirLight.h"
+#include "header/ShadowLightBundle.h"
+#include "header/ShadowPointLight.h"
 
 #include "stbi/stb_Image.h"
 
@@ -52,16 +55,20 @@ double frameTime = 0;
 
 float dynamicVar = 0;
 
+Model terrain;
+std::vector<unsigned int> terrIndices;
+
 /*
-    (TODO: Install Visual Assist)
-    TODO: Container for Models & Meshes (ShapeBundle)
-    TODO: Container for setting matrices (with uniformBuffer)
-    TODO: Container for Cameras; switch between multiple cameras
-    TODO: Container for Scene (Container for models and LightBundle, Camera)
-    TODO: Container for directional lights that cast shadows
-        TODO: Container for ShadowFBO
-    TODO: [BUG] Rotation & Translation
-    TODO: [INFO] Only Texture unit 0 - 19 are usable for object textures, others are used by lights
+    TODO: 13.11.2020    [REWORK] Mesh (hide vertices and indices)
+        -> add Buffer Class (first implement functions in mesh directly!)
+            -> add function for reallocating buffer (e.g. add vertice)
+            -> add function for changing data (subData)
+            -> add function for removing data (e.g. remove vertice)
+        -> use Buffer Class in Mesh
+    TODO: 13.11.2020    Add Support for Normal-Maps
+    TODO: N/A           Container for setting matrices (with uniformBuffer)
+    TODO: N/A           Container for Cameras; switch between multiple cameras
+    TODO: N/A           Container for Models & Meshes (ShapeBundle)
 */
 
 int main() {
@@ -210,6 +217,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     float cube_vertices[] = {
         // front
+        // Position         Normal    TexCoord
         -1.0, -1.0,  1.0,   0, 0, 0,    1, 0,
          1.0, -1.0,  1.0,   0, 0, 0,    0, 1,
          1.0,  1.0,  1.0,   0, 0, 0,    -1, 0,
@@ -249,7 +257,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     };
 
     float screenQuadVertices[] = {
-        // positions  // texCoords
+        // positions  texCoords
         -1.0f,  1.0f, 0.0f, 1.0f,
         -1.0f, -1.0f, 0.0f, 0.0f,
          1.0f, -1.0f, 1.0f, 0.0f,
@@ -259,7 +267,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
          1.0f,  1.0f, 1.0f, 1.0f
     };
 
-    ShaderProgram program("src/sebphil/shader/vertex/Vertex1.glsl", "src/sebphil/shader/fragment/Fragment1.glsl");
+    ShaderProgram program(
+        "src/sebphil/shader/vertex/VertexPhong.glsl", 
+        "src/sebphil/shader/geometry/GeoPhong.glsl", 
+        "src/sebphil/shader/fragment/FragmentPhong.glsl");
 
     UniformBuffer ubo(4, 4 * sizeof(glm::mat4));
     ubo.setElementType(0, UniformType::matrix4);
@@ -280,7 +291,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     modelLoader.getLastMesh().setMaterial({glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20});
     modelLoader.addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
     modelLoader.addTexture2D("rec/textures/BrickOcc.png", TextureType::specular, 0);
-    //modelLoader.setPosition(glm::vec3(-5, 0, 0));
 
     ModelLoader modelLoader2("rec/shapes/teapot/Teapot.obj");
     modelLoader2.setPosition(glm::vec3(10, 0, 0));
@@ -288,7 +298,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     ModelLoader modelLoader3("rec/shapes/plane/plane.obj");
     modelLoader3.getMesh(0).setMaterial({glm::vec4(0.9, 0.9, 0.9, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 32});
-    modelLoader3.setPosition(glm::vec3(0, 2, 0));
+    modelLoader3.setPosition(glm::vec3(0, -2, 0));
     modelLoader3.setRotation(glm::vec3(glm::radians(180.0f), glm::radians(90.0), 0));
 
     std::vector<Model*> models;
@@ -296,28 +306,9 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     models.push_back(&modelLoader2);
     models.push_back(&modelLoader3);
 
-    DirectionLight dirLight1;
-    dirLight1.setDiffuseColor(glm::vec3(1, 0.3, 0.3));
-    //dirLight1.update(program);
-
-    PointLight pLight1;
-    pLight1.setIndex(0);
-    pLight1.setDiffuseColor(glm::vec3(0.3, 1, 0.3));
-    pLight1.setPosition(glm::vec3(-2, 0.5, -1));
-    //pLight1.update(program);
-
-    unsigned long frame = 0;
-    double timeAtLastFrame = 0;
-    double frameTime = 0;
-
-    LightBundle lightBundle;
-    lightBundle.dirLights.push_back(DirectionLight());
-
-    lightBundle.dirLights[0].setDiffuseColor(glm::vec3(1, 1, 0.9));
-    lightBundle.dirLights[0].setDirection(glm::vec3(-2.5f, -5.0f, 0.0f));
-
     ShaderProgram skyBoxProgram("src/sebphil/shader/vertex/VertexSkyBox.glsl", "src/sebphil/shader/fragment/FragmentSkyBox.glsl");
     skyBoxProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
+    skyBoxProgram.setUniform1i("skybox", 1);
 
     std::string paths[] = {
         "rec/skyboxes/right.jpg",
@@ -332,107 +323,93 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     ShaderProgram reflectionProgram("src/sebphil/shader/vertex/VertexReflection.glsl", "src/sebphil/shader/fragment/FragmentReflection.glsl");
     reflectionProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
+    reflectionProgram.setUniform1i("skybox", 1);
 
     ShaderProgram refractionProgram("src/sebphil/shader/vertex/VertexRefraction.glsl", "src/sebphil/shader/fragment/FragmentRefraction.glsl");
     refractionProgram.bindUniformBuffer(ubo.getSlot(), "matrices");
     refractionProgram.setUniform1f("n1", 1);
     refractionProgram.setUniform1f("n2", 1.33);
-
-
-    const uint32_t depthWidth = 1024, depthHeight = 1024;
-
-    uint32_t depthFBO, depthTexture;
-    glGenFramebuffers(1, &depthFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
-
-    glGenTextures(1, &depthTexture);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, depthWidth, depthHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    refractionProgram.setUniform1i("skybox", 1);
     
     ShaderProgram shadowProgram("src/sebphil/shader/vertex/VertexShadow.glsl", "src/sebphil/shader/fragment/FragmentShadow.glsl");
 
-    program.setUniform1i("shadowMap", 20);
+    LightBundle lightBundle;
+    ShadowLightBundle shadowLightBundle;
+    shadowLightBundle.enablePointLight(program);
+    shadowLightBundle.pointLight.setPosition(glm::vec3(0, 8, 0));
+    //shadowLightBundle.enableDirLight(program);
 
-    glActiveTexture(GL_TEXTURE20);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    //lightBundle.pointLights.push_back(PointLight());
+    /*PointLight& pLight = lightBundle.pointLights[0];
+    pLight.setPosition(glm::vec3(6, 4, 6));
+    pLight.setDiffuseColor(glm::vec3(1, 1, 0.85));*/
 
-    // modelLoader3.getLastMesh().addTexture({depthTexture, TextureType::diffuse});
+    ShaderProgram pointShadowProgram(
+        "src/sebphil/shader/vertex/VertexPointShadow.glsl", 
+        "src/sebphil/shader/geometry/GeoPointShadow.glsl", 
+        "src/sebphil/shader/fragment/FragmentPointShadow.glsl");
+
+    terrain.pushbackNewMesh();
+    Mesh& terrMesh = terrain.getLastMesh();
+
+    for (uint32_t x = 0; x < 20 - 1; x++) {
+        for (uint32_t z = 0; z < 20 - 1; z++) {
+            terrIndices.push_back(z * 20 + x);
+            terrIndices.push_back(z * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x);
+
+            terrIndices.push_back(z * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x + 1);
+            terrIndices.push_back((z + 1) * 20 + x);
+        }
+    }
+
+    std::vector<Vertex> terrVertices;
+    for (uint32_t x = 0; x < 20; x++) {
+        for (uint32_t z = 0; z < 20; z++) {
+            float y = glm::simplex(glm::vec3(x, 0, z));
+            terrVertices.push_back({glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0)});
+        }
+    }
+    terrMesh.setData(terrVertices, terrIndices);
+    models.push_back(&terrain);
+
+    unsigned long frame = 0;
+    double timeAtLastFrame = 0;
+    double frameTime = 0;
+
+    //lightBundle.update(program);
 
     while (!glfwWindowShouldClose(window)) {
 
         printFrameData(timeAtLastFrame);
 
-        //DO RENDERING HERE
-        //------------------------------------------------------------------
-
         glClearColor(0.01, 0.01, 0.01, 1.0);
-
         glClear(GL_DEPTH_BUFFER_BIT);
         glClear(GL_STENCIL_BUFFER_BIT);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        //DO RENDERING HERE
+        //------------------------------------------------------------------
 
         ubo.bind();
         ubo.setElementData(0, glm::value_ptr(cam.getProjectionMatrix()));
         ubo.setElementData(1, glm::value_ptr(cam.getViewMatrix()));
         ubo.unbind();
 
-        ////SetsUp fake framebuffer
-        //glClearColor(0.01, 0.01, 0.01, 1.0);
-        //glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        ////Draws objects to fake framebuffer
-        //vao.bind();
-        //glDrawElements(GL_TRIANGLES, ibo.getCount(), GL_UNSIGNED_INT, nullptr);
-        //vao.unbind();
-
         program.setUniformVec3f("viewPos", cam.getPosition());
         reflectionProgram.setUniformVec3f("viewPosition", cam.getPosition());
         refractionProgram.setUniformVec3f("viewPosition", cam.getPosition());
 
         float xDirection = frame * 0.01;
+        //shadowLightBundle.pointLight.setPosition(glm::vec3(std::cos(xDirection) * 4, 6, std::sin(xDirection) * 4));
 
-        //lightBundle.pointLights[0].setPosition(glm::vec3(10 * std::cos(xDirection), -1, 10 * std::sin(xDirection)));
-        //lightBundle.pointLights[1].setPosition(glm::vec3(6 * std::sin(xDirection), 2, 6 * std::cos(xDirection)));
-        lightBundle.dirLights[0].setDirection(glm::vec3(std::cos(xDirection) * 4, -5, std::sin(xDirection) * 4));
         lightBundle.update(program);
-
-        float xColor = frame * 0.01;
-
-        // draw - depthBuffer (Shadow)
-
-        glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
-        glViewport(0, 0, depthWidth, depthHeight);
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        glm::mat4 orthoMat = glm::ortho(-(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20 + dynamicVar, -(20 + dynamicVar), 20.0f);
-        glm::mat4 lightViewMat = glm::lookAt(-lightBundle.dirLights[0].getDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-        glm::mat4 lightMat = orthoMat * lightViewMat;
-
-        shadowProgram.setUniformMat4f("transformViewMat", lightMat);
-
-        for (size_t i = 0; i < models.size(); i++) {
-
-            shadowProgram.setUniformMat4f("worldMatrix", models[i]->getWorldMat());
-
-            models[i]->draw(shadowProgram);
-        }
+        shadowLightBundle.update(models, shadowProgram, pointShadowProgram, program);
 
         // draw - main framebuffer
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, *width, *height);
-
-        program.setUniformMat4f("lightViewMatrix", lightMat);
 
         for (size_t i = 0; i < models.size(); i++) {
 
@@ -445,7 +422,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         }
 
         box.draw(skyBoxProgram);
-
 
         //------------------------------------------------------------------
 
@@ -460,9 +436,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
 }
 
-/*
- Resizes GL-Viewport to width and height.
-*/
 void resizeFrameBuffer(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     cam.setWidth(width);
@@ -504,6 +477,24 @@ void processInput(GLFWwindow* window) {
     }
     else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
         dynamicVar -= 0.1;
+    } 
+    else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+
+        dynamicVar += 0.01;
+
+        Mesh& terrMesh = terrain.getLastMesh();
+        std::vector<Vertex> terrVertices;
+        for (uint32_t x = 0; x < 20; x++) {
+            for (uint32_t z = 0; z < 20; z++) {
+                float offX = (x + dynamicVar * 2) * 0.4;
+                float offZ = (z + dynamicVar * 2) * 0.4;
+                float offY = dynamicVar;
+                float y = glm::simplex(glm::vec3(offX, offY, offZ)) * 0.7;
+                terrVertices.push_back({ glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0) });
+            }
+        }
+        terrMesh.setData(terrVertices, terrIndices);
+
     }
 
 }

@@ -40,9 +40,7 @@ void Model::destroyMeshes() {
 }
 
 void Model::deleteTexture(unsigned int textureID) {
-
 	glDeleteTextures(1, &textureID);
-
 }
 
 void Model::draw(ShaderProgram& program) {
@@ -69,35 +67,27 @@ void Model::addTexture2D(const char* filePath, TextureType textureType, std::siz
 
 void Model::loadTexImg(const char* filePath, TextureType textureType, Mesh& mesh) {
 
-	// TODO: ImageLoader
-	Image img;
+	ImageLoader imgLoader;
+	imgLoader.loadRGBA(filePath);
 
-	img.buffer = stbi_load(filePath, &img.width, &img.height, &img.channels, 4);
+	TextureContainer texture = getTexImgContainer(imgLoader, textureType);
 
-	if (img.buffer) {
-		TextureContainer texture = getTexImgContainer(img, textureType);
-
-		addTextureToMesh(texture, mesh);
-		loadedTextures[filePath] = texture;
-
-	} else
-		std::cout << "ERROR::STBI::Could not load (texture-) image " << filePath << "!" << std::endl;
-
-	stbi_image_free(img.buffer);
+	addTextureToMesh(texture, mesh);
+	loadedTextures[filePath] = texture;
 
 }
 
-TextureContainer&& Model::getTexImgContainer(const Image& img, TextureType textureType) {
-	unsigned int textureID = generateTexImg(img, textureType);
+TextureContainer&& Model::getTexImgContainer(const ImageLoader& imgLoader, TextureType textureType) {
+	unsigned int textureID = generateTexImg(imgLoader, textureType);
 	return { textureID, textureType };
 }
 
-unsigned int Model::generateTexImg(const Image& img, TextureType textureType) {
+unsigned int Model::generateTexImg(const ImageLoader& imgLoader, TextureType textureType) {
 
 	unsigned int textureID = generateTexture();
 
 	bindTexture(textureID);
-	setTexImgData(img, textureType);
+	setTexImgData(imgLoader, textureType);
 	generateMipmap();
 	setTexParameter();
 
@@ -114,11 +104,13 @@ void Model::bindTexture(unsigned int textureID) {
 	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
-void Model::setTexImgData(const Image& img, TextureType textureType) {
+void Model::setTexImgData(const ImageLoader& imgLoader, TextureType textureType) {
+	glm::vec2 dimensions = imgLoader.getDimensions();
+
 	if (textureType == TextureType::diffuse)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.buffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, dimensions.x, dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgLoader.getBuffer());
 	else if(textureType != TextureType::none)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.buffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, dimensions.x, dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgLoader.getBuffer());
 
 }
 
@@ -186,17 +178,19 @@ std::size_t Model::getMeshCount() const {
 
 glm::mat4 Model::getWorldMat() const {
 
-	glm::mat4 worldMat(1);
-	worldMat = glm::scale(worldMat, transforms.size);
-	
-	// TODO: glm::mat4 getRotationMat(glm::vec3 angles);
-	glm::quat quaternion(transforms.rotation);
-	glm::mat4 rotationMat = glm::toMat4(quaternion);
-	worldMat *= rotationMat;
+	glm::mat4 worldMat = glm::mat4(1);
+	glm::mat4 translationMat = glm::translate(glm::mat4(1), transforms.translation);
+	glm::mat4 scaleMat = glm::scale(glm::mat4(1), transforms.size);
+	glm::mat4 rotationMat = getRotationMatrix();
 
-	worldMat = glm::translate(worldMat, transforms.translation);
+	worldMat = translationMat * rotationMat * scaleMat;
 
 	return worldMat;
+}
+
+glm::mat4 Model::getRotationMatrix() const {
+	glm::quat quaternion(transforms.rotation);
+	return glm::toMat4(quaternion);
 }
 
 glm::mat4 Model::getNormalMat() const {

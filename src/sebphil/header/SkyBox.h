@@ -3,7 +3,7 @@
 #include "header/VertexBuffer.h"
 #include "header/VertexBufferLayout.h"
 #include "header/VertexArray.h"
-#include "header/Image.h"
+#include "header/ImageLoader.h"
 #include <string>
 
 class SkyBox {
@@ -26,7 +26,7 @@ private:
 
 	void bindTexture();
 	Image loadImg(const std::string& path);
-	void setTexData(Image& img, unsigned int texture);
+	void setTexData(ImageLoader& imgLoader, unsigned int texture);
 	void setTexParams();
 
 	void setUpDepthTest();
