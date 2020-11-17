@@ -59,11 +59,16 @@ Model terrain;
 std::vector<unsigned int> terrIndices;
 
 /*
-    TODO: [REWORK] Mesh (hide vertices and indices)
-    TODO: Add ShadowPointLight to ShadowLightBundle
-    TODO: Container for setting matrices (with uniformBuffer)
-    TODO: Container for Cameras; switch between multiple cameras
-    TODO: Container for Models & Meshes (ShapeBundle)
+    TODO: 13.11.2020    [REWORK] Mesh (hide vertices and indices)
+        -> add Buffer Class (first implement functions in mesh directly!)
+            -> add function for reallocating buffer (e.g. add vertice)
+            -> add function for changing data (subData)
+            -> add function for removing data (e.g. remove vertice)
+        -> use Buffer Class in Mesh
+    TODO: 13.11.2020    Add Support for Normal-Maps
+    TODO: N/A           Container for setting matrices (with uniformBuffer)
+    TODO: N/A           Container for Cameras; switch between multiple cameras
+    TODO: N/A           Container for Models & Meshes (ShapeBundle)
 */
 
 int main() {

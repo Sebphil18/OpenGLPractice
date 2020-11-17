@@ -40,9 +40,7 @@ void Model::destroyMeshes() {
 }
 
 void Model::deleteTexture(unsigned int textureID) {
-
 	glDeleteTextures(1, &textureID);
-
 }
 
 void Model::draw(ShaderProgram& program) {
