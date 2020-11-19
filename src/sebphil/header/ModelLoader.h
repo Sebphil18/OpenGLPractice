@@ -20,6 +20,8 @@ private:
 	glm::vec3 getVertexPosition(aiMesh* mesh, std::size_t vertexIndex);
 	glm::vec3 getVertexNormal(aiMesh* mesh, std::size_t vertexIndex);
 	glm::vec2 getVertexTexCoord(aiMesh* mesh, std::size_t vertexIndex);
+	glm::vec3 getVertexTagent(aiMesh* mesh, std::size_t vertexIndex);
+	glm::vec3 getVertexBitagent(aiMesh* mesh, std::size_t vertexIndex);
 	glm::vec3 convertAiVec3dToGlmVec(aiVector3D vec);
 
 	void loadIndices(std::vector<unsigned int>& indices, aiMesh* mesh);

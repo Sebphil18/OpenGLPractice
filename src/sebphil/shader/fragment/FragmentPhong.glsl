@@ -65,6 +65,8 @@ in FragmentData {
 	vec3 fPosition;
 	vec3 fNormal;
 	vec2 fTexCoord;
+	vec3 fTangent;
+	vec3 fBitangent;
 	vec4 fLightPosition;
 } fragmentIn;
 
@@ -127,7 +129,6 @@ void main() {
 	}
 
 	color = result;
-
 }
 
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {

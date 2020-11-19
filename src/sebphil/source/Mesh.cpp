@@ -39,6 +39,8 @@ void Mesh::initializeLayout() {
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 2, GL_FLOAT, GL_FALSE });
+	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
+	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 }
 
 void Mesh::destroyBuffer() {
@@ -215,11 +217,14 @@ std::vector<Vertex> Mesh::convertFloatToVertex(float vertices[], std::size_t siz
 
 Vertex Mesh::getVertexAttributes(float vertices[], std::size_t arrIndex) {
 
+	// TODO: getAttribute (e.g. getPosition)
 	glm::vec3 position(vertices[arrIndex], vertices[arrIndex + 1], vertices[arrIndex + 2]);
 	glm::vec3 normal(vertices[arrIndex + 3], vertices[arrIndex + 4], vertices[arrIndex + 5]);
 	glm::vec2 texCoord(vertices[arrIndex + 6], vertices[arrIndex + 7]);
+	glm::vec3 tangent(vertices[arrIndex + 8], vertices[arrIndex + 9], vertices[arrIndex + 10]);
+	glm::vec3 bitangent(vertices[arrIndex + 11], vertices[arrIndex + 12], vertices[arrIndex + 13]);
 
-	return { position, normal, texCoord };
+	return { position, normal, texCoord, tangent, bitangent};
 }
 
 void Mesh::addTexture(const TextureContainer& texture) {

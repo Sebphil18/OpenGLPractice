@@ -58,18 +58,18 @@ float dynamicVar = 0;
 Model terrain;
 std::vector<unsigned int> terrIndices;
 
-/*
-    TODO: 13.11.2020    [REWORK] Mesh (hide vertices and indices)
-        -> add Buffer Class (first implement functions in mesh directly!)
-            -> add function for reallocating buffer (e.g. add vertice)
-            -> add function for changing data (subData)
-            -> add function for removing data (e.g. remove vertice)
-        -> use Buffer Class in Mesh
-    TODO: 13.11.2020    Add Support for Normal-Maps
-    TODO: N/A           Container for setting matrices (with uniformBuffer)
-    TODO: N/A           Container for Cameras; switch between multiple cameras
-    TODO: N/A           Container for Models & Meshes (ShapeBundle)
-*/
+
+    // TODO[2020-11-13]: Mesh (hide vertices and indices)
+    //    -> add Buffer Class (first implement functions in mesh directly!)
+    //        -> add function for reallocating buffer (e.g. add vertice)
+    //        -> add function for changing data (subData)
+    //        -> add function for removing data (e.g. remove vertice)
+    //    -> use Buffer Class in Mesh
+    // TODO[2020-11-13]: Add Support for Normal-Maps
+    // TODO: Container for setting matrices (with uniformBuffer)
+    // TODO: Container for Cameras; switch between multiple cameras
+    // TODO: Container for Models & Meshes (ShapeBundle)
+
 
 int main() {
 
@@ -368,7 +368,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     for (uint32_t x = 0; x < 20; x++) {
         for (uint32_t z = 0; z < 20; z++) {
             float y = glm::simplex(glm::vec3(x, 0, z));
-            terrVertices.push_back({glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0)});
+            terrVertices.push_back({glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) });
         }
     }
     terrMesh.setData(terrVertices, terrIndices);
@@ -490,7 +490,7 @@ void processInput(GLFWwindow* window) {
                 float offZ = (z + dynamicVar * 2) * 0.4;
                 float offY = dynamicVar;
                 float y = glm::simplex(glm::vec3(offX, offY, offZ)) * 0.7;
-                terrVertices.push_back({ glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0) });
+                terrVertices.push_back({ glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) });
             }
         }
         terrMesh.setData(terrVertices, terrIndices);

@@ -12,7 +12,7 @@ Model::Model() {
 void Model::initializeTransforms() {
 	glm::vec3 nullVec(0, 0, 0);
 	glm::vec3 oneVec(1, 1, 1);
-	transforms = { nullVec, oneVec, nullVec };
+	transforms = { nullVec, oneVec, nullVec};
 }
 
 Model::~Model() {

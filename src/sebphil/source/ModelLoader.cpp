@@ -29,8 +29,8 @@ void ModelLoader::loadModel(const std::string& filePath){
 
 const aiScene* ModelLoader::importModelFile(const char* filePath) {
 	return importer.ReadFile(filePath,
-		aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes
-		| aiProcess_JoinIdenticalVertices | aiProcess_GenNormals);
+		aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_JoinIdenticalVertices 
+		| aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace);
 }
 
 bool ModelLoader::sceneIsNotValid() {
@@ -84,13 +84,13 @@ void ModelLoader::loadVertices(std::vector<Vertex>& vertices, aiMesh* mesh) {
 void ModelLoader::addVertex(std::vector<Vertex>& vertices, aiMesh* mesh, std::size_t vertexIndex) {
 
 	Vertex vertex;
-
 	vertex.position = getVertexPosition(mesh, vertexIndex);
 	vertex.normal = getVertexNormal(mesh, vertexIndex);
 	vertex.texCoord = getVertexTexCoord(mesh, vertexIndex);
+	vertex.tangent = getVertexTagent(mesh, vertexIndex);
+	vertex.bitangent = getVertexBitagent(mesh, vertexIndex);
 
 	vertices.push_back(vertex);
-
 }
 
 glm::vec3 ModelLoader::getVertexPosition(aiMesh* mesh, std::size_t vertexIndex) {
@@ -113,6 +113,20 @@ glm::vec2 ModelLoader::getVertexTexCoord(aiMesh* mesh, std::size_t vertexIndex) 
 	}
 
 	return texCoord;
+}
+
+glm::vec3 ModelLoader::getVertexTagent(aiMesh* mesh, std::size_t vertexIndex) {
+	aiVector3D tangent(0, 0, 0);
+	if (mesh->HasTangentsAndBitangents())
+		tangent = mesh->mTangents[vertexIndex];
+	return convertAiVec3dToGlmVec(tangent);
+}
+
+glm::vec3 ModelLoader::getVertexBitagent(aiMesh* mesh, std::size_t vertexIndex) {
+	aiVector3D bitangent(0, 0, 0);
+	if (mesh->HasTangentsAndBitangents())
+		bitangent = mesh->mBitangents[vertexIndex];
+	return convertAiVec3dToGlmVec(bitangent);
 }
 
 glm::vec3 ModelLoader::convertAiVec3dToGlmVec(aiVector3D vec) {
