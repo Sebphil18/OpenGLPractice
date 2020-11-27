@@ -66,7 +66,6 @@ std::vector<unsigned int> terrIndices;
     //        -> add function for changing data (subData)
     //        -> add function for removing data (e.g. remove vertice)
     //    -> use Buffer Class in Mesh
-    // TODO[2020-11-13]: Add Support for Normal-Maps
     // TODO: Container for setting matrices (with uniformBuffer)
     // TODO: Container for Cameras; switch between multiple cameras
     // TODO: Container for Models & Meshes (ShapeBundle)

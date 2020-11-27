@@ -118,7 +118,6 @@ unsigned int UniformBuffer::getSizeOfType(UniformType type) {
 	return size;
 }
 
-// TODO: unclear & to long :(
 void UniformBuffer::setElementData(std::size_t index, const void* data) {
 
 	if (index < length) {
@@ -128,10 +127,8 @@ void UniformBuffer::setElementData(std::size_t index, const void* data) {
 
 		setSubData(element);
 	} else {
-
 		std::cout << "ERROR::UNIFORMBUFFER::Index " << index << " is out of bounds! ";
 		std::cout << "The highest, valid index is " << length - 1 << "." << std::endl;
-
 	}
 
 }
@@ -144,7 +141,6 @@ unsigned int UniformBuffer::getOffsetToElement(std::size_t indexOfElement) {
 		offset += elements[i].size;
 
 	return offset;
-
 }
 
 void UniformBuffer::setSubData(const UniformBufferElement& element) {

@@ -34,7 +34,6 @@ void SkyBox::setUpBuffer() {
     vao.unbind();
 }
 
-// TODO: too long
 void SkyBox::loadTextures(std::string paths[]) {
 
     bindTexture();
@@ -50,7 +49,6 @@ void SkyBox::loadTextures(std::string paths[]) {
     }
 
     setTexParams();
-
 }
 
 Image SkyBox::loadImg(const std::string& path) {
@@ -60,10 +58,8 @@ Image SkyBox::loadImg(const std::string& path) {
 }
 
 void SkyBox::setTexData(ImageLoader& imgLoader, unsigned int texture) {
-
     glm::vec2 dimensions = imgLoader.getDimensions();
     glTexImage2D(texture, 0, GL_RGB, dimensions.x, dimensions.y, 0, GL_RGB, GL_UNSIGNED_BYTE, imgLoader.getBuffer());
-
 }
 
 void SkyBox::setTexParams() {

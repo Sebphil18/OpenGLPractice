@@ -49,7 +49,6 @@ void PointLight::updateColors(ShaderProgram& program, const std::string& uniName
 }
 
 bool PointLight::isEqualTo(const PointLight& pLight) const {
-	// TODO: better way to compare two PointLights?!
 	return constK == pLight.constK
 		&& linearK == pLight.linearK
 		&& quadraticK == pLight.quadraticK
