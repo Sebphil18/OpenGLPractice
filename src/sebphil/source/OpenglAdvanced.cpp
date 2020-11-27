@@ -8,25 +8,26 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
-#include "header/VertexBuffer.h"
-#include "header/VertexBufferLayout.h"
-#include "header/VertexArray.h"
-#include "header/Camera.h"
-#include "header/ShaderProgram.h"
-#include "header/IndexBuffer.h"
-#include "header/UniformBuffer.h"
-#include "header/FrameBuffer.h"
-#include "header/RenderBuffer.h"
-#include "header/Mesh.h"
-#include "header/Model.h"
-#include "header/ModelLoader.h"
-#include "header/DirectionLight.h"
-#include "header/PointLight.h"
-#include "header/LightBundle.h"
-#include "header/SkyBox.h"
-#include "header/ShadowDirLight.h"
-#include "header/ShadowLightBundle.h"
-#include "header/ShadowPointLight.h"
+#include "globjects/VertexBuffer.h"
+#include "globjects/VertexBufferLayout.h"
+#include "globjects/VertexArray.h"
+#include "camera/Camera.h"
+#include "shader/ShaderProgram.h"
+#include "globjects/IndexBuffer.h"
+#include "globjects/UniformBuffer.h"
+#include "globjects/FrameBuffer.h"
+#include "globjects/RenderBuffer.h"
+#include "structure/Mesh.h"
+#include "structure/Model.h"
+#include "structure/ModelLoader.h"
+#include "light/DirectionLight.h"
+#include "light/PointLight.h"
+#include "light/LightBundle.h"
+#include "skybox/SkyBox.h"
+#include "light/ShadowDirLight.h"
+#include "light/ShadowLightBundle.h"
+#include "light/ShadowPointLight.h"
+#include "structure/VertexConverter.h"
 
 #include "stbi/stb_Image.h"
 
@@ -218,16 +219,16 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     float cube_vertices[] = {
         // front
         // Position         Normal    TexCoord
-        -1.0, -1.0,  1.0,   0, 0, 0,    1, 0,
-         1.0, -1.0,  1.0,   0, 0, 0,    0, 1,
-         1.0,  1.0,  1.0,   0, 0, 0,    -1, 0,
-        -1.0,  1.0,  1.0,   0, 0, 0,    0, -1,
+        -1.0, -1.0,  1.0,   0, 0, 0,    1, 0,   0, 0, 0,    0, 0, 0,
+         1.0, -1.0,  1.0,   0, 0, 0,    0, 1,   0, 0, 0,    0, 0, 0,
+         1.0,  1.0,  1.0,   0, 0, 0,    -1, 0,   0, 0, 0,    0, 0, 0,
+        -1.0,  1.0,  1.0,   0, 0, 0,    0, -1,   0, 0, 0,    0, 0, 0,
 
         // back
-        -1.0, -1.0, -1.0,   0, 0, 0,    1, 0,
-         1.0, -1.0, -1.0,   0, 0, 0,    0, 1,
-         1.0,  1.0, -1.0,   0, 0, 0,    -1, 0,
-        -1.0,  1.0, -1.0,   0, 0, 0,    0, -1
+        -1.0, -1.0, -1.0,   0, 0, 0,    1, 0,   0, 0, 0,    0, 0, 0,
+         1.0, -1.0, -1.0,   0, 0, 0,    0, 1,   0, 0, 0,    0, 0, 0,
+         1.0,  1.0, -1.0,   0, 0, 0,    -1, 0,   0, 0, 0,    0, 0, 0,
+        -1.0,  1.0, -1.0,   0, 0, 0,    0, -1,   0, 0, 0,    0, 0, 0
     };
 
     unsigned int cube_elements[] = {
@@ -280,7 +281,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     program.bindUniformBuffer(ubo.getSlot(), "matrices");
 
-    std::vector<Vertex>  vertices = Mesh::convertFloatToVertex(cube_vertices, sizeof(cube_vertices));
+    std::vector<Vertex>  vertices = VertexConverter::floatArrToVertexVec(cube_vertices, sizeof(cube_vertices));
     std::vector<unsigned int> indices;
 
     for (size_t i = 0; i < sizeof(cube_elements) / sizeof(unsigned int); i++) {
@@ -290,7 +291,11 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     ModelLoader modelLoader("rec/shapes/sphere/sphereobj.obj");
     modelLoader.getLastMesh().setMaterial({glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20});
     modelLoader.addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
-    modelLoader.addTexture2D("rec/textures/BrickOcc.png", TextureType::specular, 0);
+    modelLoader.addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
+    modelLoader.addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);
+    modelLoader.setPosition(glm::vec3(-5, 0, -5));
+
+    modelLoader.getLastMesh().setData(vertices, indices);
 
     ModelLoader modelLoader2("rec/shapes/teapot/Teapot.obj");
     modelLoader2.setPosition(glm::vec3(10, 0, 0));
@@ -299,7 +304,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     ModelLoader modelLoader3("rec/shapes/plane/plane.obj");
     modelLoader3.getMesh(0).setMaterial({glm::vec4(0.9, 0.9, 0.9, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 32});
     modelLoader3.setPosition(glm::vec3(0, -2, 0));
-    modelLoader3.setRotation(glm::vec3(glm::radians(180.0f), glm::radians(90.0), 0));
+    modelLoader3.setSize(glm::vec3(3, 3, 3));
+    modelLoader3.addTexture2D("rec/textures/StonesText.jpg", TextureType::diffuse, 0);
+    modelLoader3.addTexture2D("rec/textures/StonesOcc.jpg", TextureType::specular, 0);
+    modelLoader3.addTexture2D("rec/textures/StonesNormal.jpg", TextureType::normal, 0);
 
     std::vector<Model*> models;
     models.push_back(&modelLoader);
@@ -336,13 +344,8 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     LightBundle lightBundle;
     ShadowLightBundle shadowLightBundle;
     shadowLightBundle.enablePointLight(program);
+    shadowLightBundle.enableDirLight(program);
     shadowLightBundle.pointLight.setPosition(glm::vec3(0, 8, 0));
-    //shadowLightBundle.enableDirLight(program);
-
-    //lightBundle.pointLights.push_back(PointLight());
-    /*PointLight& pLight = lightBundle.pointLights[0];
-    pLight.setPosition(glm::vec3(6, 4, 6));
-    pLight.setDiffuseColor(glm::vec3(1, 1, 0.85));*/
 
     ShaderProgram pointShadowProgram(
         "src/sebphil/shader/vertex/VertexPointShadow.glsl", 
@@ -352,21 +355,22 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     terrain.pushbackNewMesh();
     Mesh& terrMesh = terrain.getLastMesh();
 
-    for (uint32_t x = 0; x < 20 - 1; x++) {
-        for (uint32_t z = 0; z < 20 - 1; z++) {
-            terrIndices.push_back(z * 20 + x);
-            terrIndices.push_back(z * 20 + x + 1);
-            terrIndices.push_back((z + 1) * 20 + x);
+    uint32_t length = 20;
+    for (uint32_t x = 0; x < length - 1; x++) {
+        for (uint32_t z = 0; z < length - 1; z++) {
+            terrIndices.push_back(z * length + x);
+            terrIndices.push_back(z * length + x + 1);
+            terrIndices.push_back((z + 1) * length + x);
 
-            terrIndices.push_back(z * 20 + x + 1);
-            terrIndices.push_back((z + 1) * 20 + x + 1);
-            terrIndices.push_back((z + 1) * 20 + x);
+            terrIndices.push_back(z * length + x + 1);
+            terrIndices.push_back((z + 1) * length + x + 1);
+            terrIndices.push_back((z + 1) * length + x);
         }
     }
 
     std::vector<Vertex> terrVertices;
-    for (uint32_t x = 0; x < 20; x++) {
-        for (uint32_t z = 0; z < 20; z++) {
+    for (uint32_t x = 0; x < length; x++) {
+        for (uint32_t z = 0; z < length; z++) {
             float y = glm::simplex(glm::vec3(x, 0, z));
             terrVertices.push_back({glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) });
         }

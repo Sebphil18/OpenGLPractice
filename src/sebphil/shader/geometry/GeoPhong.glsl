@@ -9,7 +9,9 @@ in VertexData {
 	vec2 gTexCoord;
 	vec3 gTangent;
 	vec3 gBitangent;
+	mat3 tbnMatrix;
 	vec4 gLightPosition;
+	vec3 gViewPos;
 } vertexIn[];
 
 out FragmentData {
@@ -18,7 +20,9 @@ out FragmentData {
 	vec2 fTexCoord;
 	vec3 fTangent;
 	vec3 fBitangent;
+	mat3 tbnMatrix;
 	vec4 fLightPosition;
+	vec3 fViewPos;
 } fragmentOut;
 
 void main() {
@@ -31,7 +35,9 @@ void main() {
 		fragmentOut.fTexCoord = vertexIn[i].gTexCoord;
 		fragmentOut.fTangent = vertexIn[i].gTangent;
 		fragmentOut.fBitangent = vertexIn[i].gBitangent;
+		fragmentOut.tbnMatrix = vertexIn[i].tbnMatrix;
 		fragmentOut.fLightPosition = vertexIn[i].gLightPosition;
+		fragmentOut.fViewPos = vertexIn[i].gViewPos;
 
 		EmitVertex();
 	}
