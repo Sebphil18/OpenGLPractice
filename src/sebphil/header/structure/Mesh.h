@@ -32,7 +32,6 @@ struct TextureContainer {
 class Mesh {
 
 private:
-
 	struct CountIterators {
 		unsigned int diffuseCount = 0;
 		unsigned int specularCount = 0;
@@ -45,7 +44,9 @@ private:
 
 	unsigned int vbo, vao, ibo;
 
-	void fillBuffer();
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
+	std::vector<TextureContainer> textures;
 
 	void initializeBuffer();
 	void initializeMaterial();
@@ -53,9 +54,13 @@ private:
 
 	void deleteBuffer();
 
+	void fillBuffer();
+	void updateBuffer(uint32_t offset, uint32_t size, const void* data);
+
 	void bindBuffer();
 	void setVboData();
 	void setIboData();
+	void updateVboData(uint32_t offset, uint32_t size, const void* data);
 	void unbindBuffer();
 
 	void loadMaterial(ShaderProgram& program);
@@ -71,22 +76,16 @@ private:
 	void deactivateTextures();
 
 public:
-
-	std::vector<Vertex> vertices;
-	std::vector<unsigned int> indices;
-	std::vector<TextureContainer> textures;
-
 	Mesh();
-	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-		std::vector<TextureContainer> textures);
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures);
 
 	void destroyBuffer();
 	void deleteTextures();
 
-	void setData(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-		std::vector<TextureContainer> textures);
-
+	void setData(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
+		const std::vector<TextureContainer>& textures);
 	void setData(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+	void updateVertices(const std::vector<Vertex>& vertices, std::vector<Vertex>::const_iterator begin, std::vector<Vertex>::const_iterator end);
 
 	void draw(ShaderProgram& program);
 	void setMaterial(Material newMaterial);

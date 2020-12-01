@@ -14,6 +14,7 @@ private:
 
 public:
 
+	// TODO: hide dirLights & pointLights from user (make own function for pushback, size)
 	std::vector<DirectionLight> dirLights;
 	std::vector<PointLight> pointLights;
 

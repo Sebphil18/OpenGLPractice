@@ -8,8 +8,7 @@ Mesh::Mesh() {
 	initializeLayout();
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-	std::vector<TextureContainer> textures): 
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures):
 
 	vertices(vertices), indices(indices), textures(textures) {
 
@@ -39,27 +38,11 @@ void Mesh::initializeLayout() {
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 2, GL_FLOAT, GL_FALSE });
+	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE }); 
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
-	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 }
 
-void Mesh::destroyBuffer() {
-	deleteBuffer();
-}
-
-void Mesh::deleteBuffer() {
-	glDeleteVertexArrays(1, &vao);
-	glDeleteBuffers(1, &vbo);
-	glDeleteBuffers(1, &ibo);
-}
-
-void Mesh::deleteTextures() {
-	for (TextureContainer texture : textures)
-		glDeleteTextures(1, &texture.id);
-	textures.clear();
-}
-
-void Mesh::setData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<TextureContainer> textures) {
+void Mesh::setData(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures) {
 
 	this->vertices = vertices;
 	this->indices = indices;
@@ -78,7 +61,6 @@ void Mesh::setData(std::vector<Vertex> vertices, std::vector<unsigned int> indic
 }
 
 void Mesh::fillBuffer() {
-
 	bindBuffer();
 
 	vboLayout.bindLayout();
@@ -87,7 +69,28 @@ void Mesh::fillBuffer() {
 	setIboData();
 
 	unbindBuffer();
+}
 
+void Mesh::updateVertices(const std::vector<Vertex>& vertices, std::vector<Vertex>::const_iterator begin, std::vector<Vertex>::const_iterator end) {
+
+	std::size_t length = end - begin;
+	uint32_t offset = (vertices.begin() - begin);
+	uint32_t size = sizeof(Vertex) * length;
+
+	updateBuffer(offset, size, &vertices[offset]);
+
+	for (auto i = begin; i != end; i++) {
+		uint32_t index = i - begin;
+		this->vertices[index] = *i;
+	}
+
+}
+
+void Mesh::updateBuffer(uint32_t offset, uint32_t size, const void* data) {
+	bindBuffer();
+	vboLayout.bindLayout();
+	updateVboData(offset, size, data);
+	unbindBuffer();
 }
 
 void Mesh::bindBuffer() {
@@ -106,10 +109,30 @@ void Mesh::setIboData() {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 }
 
+void Mesh::updateVboData(uint32_t offset, uint32_t size, const void* data) {
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+}
+
 void Mesh::unbindBuffer() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void Mesh::destroyBuffer() {
+	deleteBuffer();
+}
+
+void Mesh::deleteBuffer() {
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ibo);
+}
+
+void Mesh::deleteTextures() {
+	for (TextureContainer texture : textures)
+		glDeleteTextures(1, &texture.id);
+	textures.clear();
 }
 
 void Mesh::draw(ShaderProgram& program) {

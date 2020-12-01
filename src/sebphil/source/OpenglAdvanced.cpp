@@ -60,15 +60,8 @@ Model terrain;
 std::vector<unsigned int> terrIndices;
 
 
-    // TODO[2020-11-13]: Mesh (hide vertices and indices)
-    //    -> add Buffer Class (first implement functions in mesh directly!)
-    //        -> add function for reallocating buffer (e.g. add vertice)
-    //        -> add function for changing data (subData)
-    //        -> add function for removing data (e.g. remove vertice)
-    //    -> use Buffer Class in Mesh
-    // TODO: Container for setting matrices (with uniformBuffer)
-    // TODO: Container for Cameras; switch between multiple cameras
-    // TODO: Container for Models & Meshes (ShapeBundle)
+// TODO: Container for Cameras; switch between multiple cameras
+// TODO: Container for Models & Meshes (ShapeBundle)
 
 
 int main() {
@@ -217,7 +210,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     float cube_vertices[] = {
         // front
-        // Position         Normal    TexCoord
+        // Position         Normal    TexCoord  Tangent     Bitangent
         -1.0, -1.0,  1.0,   0, 0, 0,    1, 0,   0, 0, 0,    0, 0, 0,
          1.0, -1.0,  1.0,   0, 0, 0,    0, 1,   0, 0, 0,    0, 0, 0,
          1.0,  1.0,  1.0,   0, 0, 0,    -1, 0,   0, 0, 0,    0, 0, 0,
@@ -293,8 +286,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     modelLoader.addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
     modelLoader.addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);
     modelLoader.setPosition(glm::vec3(-5, 0, -5));
-
-    modelLoader.getLastMesh().setData(vertices, indices);
 
     ModelLoader modelLoader2("rec/shapes/teapot/Teapot.obj");
     modelLoader2.setPosition(glm::vec3(10, 0, 0));
@@ -496,7 +487,7 @@ void processInput(GLFWwindow* window) {
                 terrVertices.push_back({ glm::vec3(x, y, z), glm::vec3(0, 1, 0), glm::vec2(0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 0, 0) });
             }
         }
-        terrMesh.setData(terrVertices, terrIndices);
+        terrMesh.updateVertices(terrVertices, terrVertices.begin(), terrVertices.end());
 
     }
 
