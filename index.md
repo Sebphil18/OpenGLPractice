@@ -85,7 +85,7 @@ struct Material {
 };
 ```
 ## ShaderProgram
-A ShaderProgram represents a collection of vertex-, geometry- (optional) and fragmentshader. It is used to quickly create and use shaders. The following code snippet demonsrtates the usage of such a shader-program:
+A ShaderProgram represents a collection of vertex-, geometry- (optional) and fragmentshader. It is used to quickly create and use shader. The following code snippet demonstrates the usage of such a shader-program:
 ```C++
 ShaderProgram program(
         "src/shader/vertex/VertexPhong.glsl", 
