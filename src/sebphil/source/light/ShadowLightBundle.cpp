@@ -1,3 +1,4 @@
+#include <memory>
 #include "light/ShadowLightBundle.h"
 
 void ShadowLightBundle::enableDirLight(ShaderProgram& program) {
@@ -20,7 +21,7 @@ void ShadowLightBundle::disablePointLight(ShaderProgram& program) {
     program.setUniform1i("shadowPointLightsCount", 0);
 }
 
-void ShadowLightBundle::update(std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& pointShadowProgram, ShaderProgram& program) {
+void ShadowLightBundle::update(std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& pointShadowProgram, ShaderProgram& program) {
     dirLight.update(models, shadowProgram, program);
     pointLight.update(models, pointShadowProgram, program);
 }

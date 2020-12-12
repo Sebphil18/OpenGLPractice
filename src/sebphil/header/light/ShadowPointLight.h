@@ -1,7 +1,8 @@
 #pragma once
+#include <memory>
 #include "PointLight.h"
 #include "shader/ShaderProgram.h"
-#include "structure/Model.h"
+#include "modelstructure/Model.h"
 
 class ShadowPointLight : public PointLight{
 
@@ -27,14 +28,14 @@ private:
 	void generateLightSpaceMat();
 
 	void updateLightSpaceMat(ShaderProgram& shadowProgram);
-	void renderModels(const std::vector<Model*>& models, ShaderProgram& shadowProgram);
+	void renderModels(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram);
 	void updateShadow(ShaderProgram& program, ShaderProgram& shadowProgram);
 
 public:
 
 	ShadowPointLight();
 
-	void update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program);
+	void update(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& program);
 
 	void setPosition(glm::vec3 position);
 

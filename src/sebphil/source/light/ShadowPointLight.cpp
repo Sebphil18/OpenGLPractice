@@ -56,7 +56,7 @@ void ShadowPointLight::generateProjMat() {
 	projMat = glm::perspective(glm::radians(90.0f), aspRatio, near, far);
 }
 
-void ShadowPointLight::update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
+void ShadowPointLight::update(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
 
 	std::string uniName = "shadowPointLights[0].";
 
@@ -83,7 +83,7 @@ void ShadowPointLight::updateLightSpaceMat(ShaderProgram& shadowProgram) {
 	shadowProgram.setUniformMat4f("lightSpaceMat[5]", lightSpaceMat[5]);
 }
 
-void ShadowPointLight::renderModels(const std::vector<Model*>& models, ShaderProgram& shadowProgram) {
+void ShadowPointLight::renderModels(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram) {
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, shadowWidth, shadowHeight);

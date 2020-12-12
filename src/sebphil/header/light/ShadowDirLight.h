@@ -1,6 +1,6 @@
 #pragma once
 #include "DirectionLight.h"
-#include "structure/Model.h"
+#include "modelstructure/Model.h"
 #include <vector>
 
 class ShadowDirLight : public DirectionLight {
@@ -27,7 +27,7 @@ private:
 	void updateProjMat();
 	void updateLightSpaceMat(ShaderProgram& shadowProgram, ShaderProgram& program);
 	
-	void renderModels(const std::vector<Model*> models, ShaderProgram& shadowProgram);
+	void renderModels(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram);
 	void bindFbo();
 	void adjustViewport();
 	void unbindFbo();
@@ -40,7 +40,7 @@ public:
 	ShadowDirLight(std::size_t index);
 	ShadowDirLight(std::size_t index, uint32_t shadowWidth, uint32_t shadowHeight);
 
-	void update(const std::vector<Model*>& models, ShaderProgram& program, ShaderProgram& shadowProgram);
+	void update(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& program, ShaderProgram& shadowProgram);
 
 	void setProjMat(glm::mat4 projMat);
 	void setViewMat(glm::mat4 viewMat);

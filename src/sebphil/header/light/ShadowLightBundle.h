@@ -1,6 +1,6 @@
 #pragma once
 #include "shader/ShaderProgram.h"
-#include "structure/Model.h"
+#include "modelstructure/Model.h"
 #include "ShadowDirLight.h"
 #include "ShadowPointLight.h"
 #include <vector>
@@ -11,7 +11,7 @@ public:
 	ShadowDirLight dirLight;
 	ShadowPointLight pointLight;
 
-	void update(std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& pointShadowProgram, ShaderProgram& program);
+	void update(std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& pointShadowProgram, ShaderProgram& program);
 
 	void enableDirLight(ShaderProgram& program);
 	void disableDirLight(ShaderProgram& program);

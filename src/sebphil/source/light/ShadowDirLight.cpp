@@ -1,3 +1,4 @@
+#include <memory>
 #include "light/ShadowDirLight.h"
 #include "glad/glad.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -70,7 +71,7 @@ void ShadowDirLight::setUpFramebuffer() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void ShadowDirLight::update(const std::vector<Model*>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
+void ShadowDirLight::update(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
 	
 	updateProjMat();
 	updateViewMat();
@@ -100,13 +101,13 @@ glm::mat4 ShadowDirLight::getLightSpaceMat() const {
 	return projMat * viewMat;
 }
 
-void ShadowDirLight::renderModels(const std::vector<Model*> models, ShaderProgram& shadowProgram) {
+void ShadowDirLight::renderModels(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram) {
 
 	bindFbo();
 	adjustViewport();
 
 	for (std::size_t i = 0; i < models.size(); i++) {
-		Model* model = models[i];
+		const std::shared_ptr<Model>& model = models[i];
 		shadowProgram.setUniformMat4f("worldMatrix", model->getWorldMat());
 		model->draw(shadowProgram);
 	}
