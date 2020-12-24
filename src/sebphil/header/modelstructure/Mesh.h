@@ -78,6 +78,7 @@ private:
 public:
 	Mesh();
 	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures);
+	Mesh(std::size_t verticesLength);
 
 	void destroyBuffer();
 	void deleteTextures();

@@ -3,7 +3,7 @@
 
 Camera::Camera() :
 	movementSpeed(10), sensitivity(0.15), yaw(-90), pitch(0),
-	fieldOfView(45), near(0.01), far(500), width(1), height(1) {
+	fieldOfView(45), near(0.05), far(300), width(1), height(1) {
 
 	setUpCamera();
 	setUpMatrices();

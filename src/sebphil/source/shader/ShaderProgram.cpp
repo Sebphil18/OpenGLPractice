@@ -4,6 +4,8 @@
 #include "glad/glad.h"
 #include "glm/gtc/type_ptr.hpp"
 
+#define SEB_DEBUG 0
+
 ShaderProgram::ShaderProgram(const std::string& vertexShaderFile, const std::string& fragmentShaderFile) {
     vertexShader = getShaderId(vertexShaderFile, ShaderType::vertex);
     fragmentShader = getShaderId(fragmentShaderFile, ShaderType::fragment);
@@ -325,5 +327,7 @@ bool ShaderProgram::uniformIsPresent(int location) {
 }
 
 void ShaderProgram::printUniformWarning(const std::string& name) {
+#if SEB_DEBUG 1
     std::cout << "WARNING::SHADERPROGRAM::Using non existing uniform: " << name << std::endl;
+#endif
 }

@@ -56,6 +56,7 @@ public:
 
 	void addMesh(const Mesh& mesh);
 	void pushbackNewMesh();
+	void pushbackNewMesh(std::size_t verticesLength);
 	void setMesh(Mesh mesh, std::size_t meshIndex);
 	void removeMesh(std::size_t index);
 

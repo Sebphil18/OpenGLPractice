@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <random>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -9,22 +10,31 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 #include "camera/Camera.h"
 #include "globjects/UniformBuffer.h"
 #include "modelstructure/ModelLoader.h"
-#include "light/LightBundle.h"
-#include "light/ShadowPointLight.h"
 #include "window/Application.h"
 #include "window/Window.h"
 #include "scene/Scene.h"
 #include "shader/DefaultShaders.h"
-
-#define SEB_DEBUGMODE 1
+#include "imgui/ImGuiInterface.h"
+#include "terrainmodel/TerrainModel.h"
+#include "windowcontroller/TerrainSettingsWindow.h"
+#include "windowcontroller/HydraulicErosionWindow.h"
+#include "erosion/HydraulicErosion.h"
+#include "heightmap/SpecialEffect.h"
 
 #ifndef SEB_APP
 #define SEB_APP 1
 
-static Camera cam(800, 800);
+// TODO: send heightmap as texture to gpu and do blurring there? (however blurring has not huge impact on performance)
+// TODO: outsource calculations for erosions to gpu? (compute shader)
+
+static Camera cam(1200, 800);
 static bool isFirstMouseMove = true;
 static float lastX = 0, lastY = 0;
 static double frameTime = 0;
@@ -42,17 +52,19 @@ void printFrameData(double& timeAtLastFrame);
 void resizeFrameBuffer(GLFWwindow* window, int width, int height);
 void processMouse(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
+void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 int main() {
 
     Application app;
-    Window win("Test-Window", 800, 800);
+    Window win("Terrain-Generation", 1200, 800);
 
     int width = win.getWidth();
     int height = win.getHeight();
 
     win.setFramebufferSizeCallback(resizeFrameBuffer);
     win.setCursorPosCallback(processMouse);
+    win.setKeyCallback(onKeyPressed);
 
     windows.push_back(win);
 
@@ -63,11 +75,19 @@ int main() {
 
 void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
+    ImGuiInterface imgui(window);
+
     Scene scene;
     DefaultShaders shaders;
 
     UniformBuffer matrixUbo(4, 4 * sizeof(glm::mat4));
     setUpMatrixUbo(matrixUbo);
+
+    ShaderProgram landscapeProgram(
+        "src/sebphil/shader/vertex/VertexPhong.glsl", 
+        "src/sebphil/shader/geometry/GeoPhong.glsl", 
+        "src/sebphil/shader/fragment/LandscapeFragment.glsl");
+    shaders.phongProgram = landscapeProgram;
 
     ShaderProgram& program = shaders.phongProgram;
     ShaderProgram& skyBoxProgram = shaders.skyboxProgram;
@@ -77,9 +97,13 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     std::shared_ptr<ModelLoader> modelLoader = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
     modelLoader->getLastMesh().setMaterial({glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20});
-    modelLoader->addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
+    /*modelLoader->addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
     modelLoader->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
-    modelLoader->addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);
+    modelLoader->addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);*/
+    modelLoader->addTexture2D("rec/textures/ground/RockDiff.jpg", TextureType::diffuse, 0);
+    modelLoader->addTexture2D("rec/textures/ground/Grass2Diff.jpg", TextureType::diffuse, 0);
+    modelLoader->addTexture2D("rec/textures/ground/Grass2Occ.jpg", TextureType::specular, 0);
+    modelLoader->addTexture2D("rec/textures/ground/Grass2Normal.jpg", TextureType::normal, 0);
     modelLoader->setPosition(glm::vec3(-5, 0, -5));
 
     std::shared_ptr<ModelLoader> modelLoader2 = std::make_shared<ModelLoader>("rec/shapes/teapot/Teapot.obj");
@@ -93,24 +117,45 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     std::vector<std::shared_ptr<Model>>& models = scene.models;
     models.push_back(modelLoader);
-    models.push_back(modelLoader2);
-    models.push_back(modelLoader3);
+    /*models.push_back(modelLoader2);
+    models.push_back(modelLoader3);*/
     
     setSkyboxTextures(scene.skyBox);
 
-    ShadowLightBundle& shadowLights = scene.shadowLights;    
-    shadowLights.enablePointLight(program);
-    shadowLights.enableDirLight(program);
-    shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
+    //ShadowLightBundle& shadowLights = scene.shadowLights;    
+    //shadowLights.enablePointLight(program);
+    //shadowLights.enableDirLight(program);
+    //shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
+
+    LightBundle& lights = scene.lights;
+    DirectionLight dirLight;
+    dirLight.setDirection(glm::vec3(0.3, -0.4, 0));
+    lights.dirLights.push_back(dirLight);
 
     unsigned long frame = 0;
     double timeAtLastFrame = 0;
 
+    std::shared_ptr<TerrainModel> terrain = std::make_shared<TerrainModel>();
+    terrain->setPosition(glm::vec3(0, 0, 0));
+    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1), 5 });
+    terrain->addTexture2D("rec/textures/ground/RockDiff.jpg", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/ground/Grass2Diff.jpg", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/GroundOcc.jpg", TextureType::specular, 0);
+    terrain->addTexture2D("rec/textures/GroundNormal.jpg", TextureType::normal, 0);
+    models.push_back(terrain);
+
+    HydraulicErosionWindow erosionSettings(terrain);
+    TerrainSettingsWindow terrainSettings(terrain);
+
     windows[0].focus();
     while (!glfwWindowShouldClose(window)) {
-
         update(scene, shaders, matrixUbo);
         draw(scene, shaders, matrixUbo, width, height);
+
+        imgui.newFrame();
+        terrainSettings.draw();
+        erosionSettings.draw();
+        imgui.render();
 
         glfwGetWindowSize(window, width, height);
         processInput(window);
@@ -163,11 +208,11 @@ void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* 
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, *width, *height);
+
     glEnable(GL_CULL_FACE);
-
     drawModels(scene.models, matrixUbo, shaders.phongProgram);
-
     glDisable(GL_CULL_FACE);
+
     scene.skyBox.draw(shaders.skyboxProgram);
 }
 
@@ -188,9 +233,9 @@ void printFrameData(double& timeAtLastFrame) {
     timeAtLastFrame = currentTime;
     float fps = 1 / frameTime;
 
-    std::cout << "INFO::FRAME::frameTime: " << frameTime << std::endl;
-    std::cout << "INFO::FRAME::framerate: " << (int)fps << std::endl;
-    std::cout << std::endl;
+    std::cout << "INFO::FRAME::frameTime: " << frameTime << "\n";
+    std::cout << "INFO::FRAME::framerate: " << (int)fps << "\n";
+    std::cout << "\n";
 }
 
 void resizeFrameBuffer(GLFWwindow* window, int width, int height) {
@@ -215,13 +260,13 @@ void processInput(GLFWwindow* window) {
 
 void processMouse(GLFWwindow* window, double xpos, double ypos) {
 
+    if (!(glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED))
+        return;
+
     if (isFirstMouseMove) {
-
         isFirstMouseMove = false;
-
         lastX = xpos;
         lastY = ypos;
-
     }
 
     float xoffset = xpos - lastX;
@@ -230,6 +275,20 @@ void processMouse(GLFWwindow* window, double xpos, double ypos) {
     lastY = ypos;
 
     cam.moveYawAndPitch(xoffset, yoffset);
+}
+
+void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        int inputMode = glfwGetInputMode(window, GLFW_CURSOR);
+        if (inputMode == GLFW_CURSOR_DISABLED)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        isFirstMouseMove = true;
+    }
 
 }
+#else
+#error Application already defined!
 #endif

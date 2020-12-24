@@ -9,8 +9,17 @@ Mesh::Mesh() {
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures):
-
 	vertices(vertices), indices(indices), textures(textures) {
+
+	initializeBuffer();
+	initializeMaterial();
+	initializeLayout();
+
+	fillBuffer();
+}
+
+Mesh::Mesh(std::size_t verticesLength) {
+	vertices = std::vector<Vertex>(verticesLength, {glm::vec3(0)});
 
 	initializeBuffer();
 	initializeMaterial();
@@ -49,7 +58,6 @@ void Mesh::setData(const std::vector<Vertex>& vertices, const std::vector<unsign
 	this->textures = textures;
 
 	fillBuffer();
-
 }
 
 void Mesh::setData(std::vector<Vertex> vertices, std::vector<unsigned int> indices) {
@@ -74,7 +82,7 @@ void Mesh::fillBuffer() {
 void Mesh::updateVertices(const std::vector<Vertex>& vertices, std::vector<Vertex>::const_iterator begin, std::vector<Vertex>::const_iterator end) {
 
 	std::size_t length = end - begin;
-	uint32_t offset = (vertices.begin() - begin);
+	uint32_t offset = (begin - vertices.begin());
 	uint32_t size = sizeof(Vertex) * length;
 
 	updateBuffer(offset, size, &vertices[offset]);
