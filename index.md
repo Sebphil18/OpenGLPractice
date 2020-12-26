@@ -4,6 +4,6 @@ This little repository should document the process of learning OpenGL with GLFW 
 The implementation of a new feature is outsourced to a new branch, which is merged with the main branch after the implementation was completed.
 
 As a demo, a little terrain can be generated: <br>
-<image src="https://i.imgur.com/yA5K2QJ.png" width=255 height=255> </image>
-<image src="https://i.imgur.com/981LxRl.png" width=255 height=255> </image>
-<image src="https://i.imgur.com/RLYbblf.png" width=255 height=255> </image>
+<image src="https://i.imgur.com/yA5K2QJ.png" width=500 height=500> </image>
+<image src="https://i.imgur.com/981LxRl.png" width=500 height=500> </image>
+<image src="https://i.imgur.com/RLYbblf.png" width=500 height=500> </image>
