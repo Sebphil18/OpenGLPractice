@@ -1,7 +1,7 @@
 #include "noise/NoiseGenerator2D.h"
 
 NoiseGenerator2D::NoiseGenerator2D() :
-	frequency(1) {}
+	frequency(0.071) {}
 
 float NoiseGenerator2D::noise(float x, float y) {
 	x *= frequency;
@@ -66,6 +66,7 @@ void NoiseGenerator2D::setFrequency(float frequency) {
 
 void NoiseGenerator2D::setSeed(std::uint32_t seed) {
 	permutation.setSeed(seed);
+	permutation.permute();
 }
 
 int NoiseGenerator2D::getSeed() const {

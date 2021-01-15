@@ -25,9 +25,7 @@ void HeightMap::normalize() {
 }
 
 void HeightMap::clear() {
-	lengthX = 0;
-	lengthY = 0;
-	values.clear();
+	std::fill(values.begin(), values.end(), 0);
 }
 
 void HeightMap::resize(int newLengthX, int newLengthY) {

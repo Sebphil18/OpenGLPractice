@@ -36,6 +36,7 @@ private:
 		unsigned int diffuseCount = 0;
 		unsigned int specularCount = 0;
 		unsigned int ambientCount = 0;
+		unsigned int normalCount = 0;
 	};
 
 	Material material;

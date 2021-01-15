@@ -2,11 +2,10 @@
 #include "imgui/imgui.h"
 #include <iostream>
 
-// TODO: making a reference to a shared_ptr's member is very evil: when all shared_ptr get destroyed, the reference becomes invalid 
-// -> move heightmapPtr & settingsPtr into draw function!
 // note: This only works because this class also holds the specific shared_ptr, which holds the referenced HeightMap!
 HydraulicErosionWindow::HydraulicErosionWindow(const std::shared_ptr<TerrainModel>& terrain) :
-	terrain(terrain), erosion(70000), blurEffect(EffectType::blur), sharpenEffect(EffectType::sharpen), heightmap(*terrain->getHeightMapPtr()) {
+	terrain(terrain), erosion(70000), blurEffect(EffectType::blur), sharpenEffect(EffectType::sharpen), heightmap(*terrain->getHeightMapPtr())
+	, blurOnErosion(true), iterations(1) {
 
 	this->settings = erosion.getDropletSettingsPtr();
 }
@@ -23,12 +22,14 @@ void HydraulicErosionWindow::draw() {
 	drawErodButton();
 	ImGui::SameLine();
 	drawResetButton();
+	ImGui::Checkbox("blur on erosion", &blurOnErosion);
 	ImGui::End();
 }
 
 void HydraulicErosionWindow::drawSettingsSlider() {
-	drawInputInt("iterations", erosion.getIterationsPtr(), 1000, 10000);
-	drawSliderInt("drop lifetime", &settings->lifetime, 10, 60);
+	drawInputInt("iterations", &iterations, 1, 10);
+	drawInputInt("amount of drops", erosion.getDropAmountPtr(), 1000, 10000);
+	drawSliderInt("drop lifetime", &settings->lifetime, 10, 100);
 	drawSliderFloat("gravity", &settings->gravity, 0.01, 12);
 	drawSliderFloat("erosion-rate", &settings->erosionRate, 0.05, 1);
 	drawSliderFloat("deposit-rate", &settings->depositRate, 0.05, 0.5);
@@ -62,8 +63,16 @@ void HydraulicErosionWindow::drawEffectButton(const std::string& title, const Sp
 
 void HydraulicErosionWindow::drawErodButton() {
 	if (ImGui::Button("erode")) {
+		erodeTerrain();
+	}
+}
+
+void HydraulicErosionWindow::erodeTerrain() {
+	// i is an int because iterations is an int: when iterations is negative and i would be an uint the loop would go for a very long time
+	for (int i = 0; i < iterations; i++) {
 		erosion.erode(heightmap);
-		blurEffect.apply(heightmap);
+		if (blurOnErosion)
+			blurEffect.apply(heightmap);
 		terrain->update(false);
 	}
 }

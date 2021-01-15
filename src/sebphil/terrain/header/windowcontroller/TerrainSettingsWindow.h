@@ -23,6 +23,8 @@ private:
 	void addResizeSliders(int* lengthX, int* lengthY, int min, int max);
 	void addSeedInput(int* value);
 
+	void drawScaleSlider();
+
 public:
 	TerrainSettingsWindow(const std::shared_ptr<TerrainModel>& terrain);
 

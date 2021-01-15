@@ -17,6 +17,8 @@ private:
 	DropletSettings* settings;
 	SpecialEffect blurEffect;
 	SpecialEffect sharpenEffect;
+	int iterations;
+	bool blurOnErosion;
 
 	void drawSettingsSlider();
 	void drawInputInt(const std::string& title, int* value, int incrementSlow, int incrementFast);
@@ -24,6 +26,7 @@ private:
 	void drawSliderFloat(const std::string& title, float* value, float min, float max);
 	void drawEffectButton(const std::string& title, const SpecialEffect& effect);
 	void drawErodButton();
+	void erodeTerrain();
 	void drawResetButton();
 
 public:

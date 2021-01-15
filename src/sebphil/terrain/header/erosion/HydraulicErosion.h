@@ -6,14 +6,15 @@
 class HydraulicErosion {
 
 private:
-	int iterations;
+
+	int amountOfDrops;
 	DropletSettings dropSettings;
 
 public:
 	HydraulicErosion(std::uint32_t iterations);
 	void erode(HeightMap& heightMap);
 
-	int* getIterationsPtr();
+	int* getDropAmountPtr();
 	DropletSettings* getDropletSettingsPtr();
 
 };

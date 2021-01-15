@@ -57,7 +57,7 @@ void SpecialEffect::apply(HeightMap& heightmap) const {
 
 	applyEffect(combinedValues, heightmap);
 
-	heightmap.setValues(heightmap.getLengthX(), heightmap.getLengthY(), combinedValues);
+	heightmap.setValues(lengthX, lengthY, combinedValues);
 }
 
 void SpecialEffect::applyEffect(std::vector<float>& newValues, const HeightMap& heightmap) const {
@@ -75,7 +75,7 @@ void SpecialEffect::applyEffect(std::vector<float>& newValues, const HeightMap& 
 
 std::array<float, SEB_KERNEL_SIZE> SpecialEffect::getSampledValues(glm::vec2 position, const HeightMap& heightmap) const {
 
-	std::array<float, SEB_KERNEL_SIZE> sampledValues{};
+	std::array<float, SEB_KERNEL_SIZE> sampledValues;
 
 	for (int i = 0; i < SEB_KERNEL_SIZE; i++)
 		sampledValues[i] = samplePoint(position, offsets[i], heightmap);

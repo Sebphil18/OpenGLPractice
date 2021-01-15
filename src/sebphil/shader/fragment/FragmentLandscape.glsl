@@ -63,7 +63,6 @@ uniform samplerCube pointShadowMap;
 in FragmentData {
 	vec3 fPosition;
 	vec3 fNormal;
-	vec2 fTexCoord;
 	vec3 fTangent;
 	vec3 fBitangent;
 	mat3 tbnMatrix;
@@ -73,6 +72,11 @@ in FragmentData {
 
 out vec4 color;
 
+vec4 getDiffuseColor();
+vec4 getSpecularColor();
+vec4 getAmbientColor();
+vec3 getNormal(sampler2D normalMap);
+vec4 getTexture(sampler2D sampleTexture);
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir);
@@ -80,71 +84,103 @@ float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal);
 
 void main() {
 
-	vec3 viewDir = normalize(fragmentIn.fViewPos - fragmentIn.fPosition);
+	vec3 position = fragmentIn.fPosition;
+	vec3 viewDir = normalize(fragmentIn.fViewPos - position);
+	vec3 normal = getNormal(material.normal);
 
-	vec2 texCoord1 = vec2(fragmentIn.fTexCoord.x * 0.5, fragmentIn.fTexCoord.y * 0.5);
-	vec2 texCoord2 = vec2(fragmentIn.fTexCoord.x * 0.2, fragmentIn.fTexCoord.y * 0.2);
-	vec4 diffTexture = texture(material.diffuse0, texCoord1);
-	vec4 diffTexture2 = texture(material.diffuse1, texCoord2);
+	vec4 diffuseColor = getDiffuseColor();
+	vec4 specularColor = getSpecularColor();
+	vec4 ambientColor = getAmbientColor();
 
-	vec4 specTexture = texture(material.specular0, fragmentIn.fTexCoord);
-	vec4 ambientTexture = texture(material.ambient0, fragmentIn.fTexCoord);
-
-	vec4 diffuseColor;
-
-	float height = fragmentIn.fPosition.y >= 0 ? fragmentIn.fPosition.y : 0;
-	float d = dot(vec3(0, 1, 0), fragmentIn.fNormal);
-	if(height > 8) {
-		diffuseColor = mix(diffTexture, diffTexture2,  min(0.8, (1 - (height / 5)) * d));
-	} else {
-		diffuseColor = mix(diffTexture, diffTexture2, (1 - (height / 8)) * d);
+	vec4 result = vec4(0, 0, 0, 1);
+	// DirLight
+	for(unsigned int i = 0; i < dirLightsCount; i++) {
+		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, false);
+	}
+	for(unsigned int i = 0; i < shadowDirLightsCount; i++) {
+		result += getDirLightColor(shadowDirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, true);
 	}
 
+	// PointLight
+	for(unsigned int i = 0; i < pointLightsCount; i++){
+		result += getPointLightColor(pointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, false);
+	}
+	for(unsigned int i = 0; i < shadowPointLightsCount; i++) {
+		result += getPointLightColor(shadowPointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, true);
+	}
+
+	color = result;
+}
+
+vec4 getDiffuseColor() {
+	vec4 diffTexture = getTexture(material.diffuse0);
+	vec4 diffTexture2 = getTexture(material.diffuse1);
+	
+	// is current height greater then sea level?
+	float height = fragmentIn.fPosition.y >= 0 ? fragmentIn.fPosition.y : 0;
+	// how much is fragment inclined? if not inclined d = 1
+	float d = dot(vec3(0, 1, 0), fragmentIn.fNormal);
+
+	// weigth: when 1 -> grassTexture; when 0 -> rockTexture; higher means fewer grass; at height 8 no grass will be drawn
+	float weigth = (1 - height / 8) * d;
+	weigth = max(0, weigth);
+
+	vec4 diffuseColor = mix(diffTexture, diffTexture2, weigth);
+
+	return diffuseColor;
+}
+
+vec4 getSpecularColor() {
+	vec4 specTexture = getTexture(material.specular0);
 	vec4 specularColor;
+
 	if(specTexture.x == 0 && specTexture.y == 0 && specTexture.z == 0) {
 		specularColor = material.specularColor;
 	} else {
 		specularColor = specTexture;
 	}
 
+	return specularColor;
+}
+
+vec4 getAmbientColor() {
+	vec4 ambientTexture = getTexture(material.ambient0);
 	vec4 ambientColor;
+	
 	if(ambientTexture.x == 0 && ambientTexture.y == 0 && ambientTexture.z == 0) {
 		ambientColor = material.ambientColor;
 	} else {
 		ambientColor = ambientTexture;
 	}
 
-	// Normal-Mapping
+	return ambientColor;
+}
+
+vec3 getNormal(sampler2D normalMap) {
 	vec3 normal = normalize(fragmentIn.fNormal);
-	vec3 position = fragmentIn.fPosition;
-	vec3 normalMapCol = texture(material.normal, fragmentIn.fTexCoord).rgb;
+	vec3 normalMapCol = getTexture(normalMap).rgb;
+
 	if(length(normalMapCol) != 0) {
 		normal = normalMapCol * 2 - 1;
 		normal = fragmentIn.tbnMatrix * normal;
 		normal = normalize(normal);
 	}
 
-	vec4 result = vec4(0, 0, 0, 1);
+	return normal;
+}
 
-	for(unsigned int i = 0; i < dirLightsCount; i++){
-		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, false);
-	}
+// triplanar-mapping
+vec4 getTexture(sampler2D sampleTexture) {
 
-	// ShadowDirLight
-	for(unsigned int i = 0; i < shadowDirLightsCount; i++)  {
-		result += getDirLightColor(shadowDirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, true);
-	}
+	vec3 worldPos = fragmentIn.fPosition;
+	vec3 blend = abs(fragmentIn.fNormal);
+	blend /= blend.x + blend.y + blend.z;
+	
+	vec4 projectionX = texture(sampleTexture, worldPos.yz) * blend.x;
+	vec4 projectionY = texture(sampleTexture, worldPos.xz) * blend.y;
+	vec4 projectionZ = texture(sampleTexture, worldPos.xy) * blend.z;
 
-	for(unsigned int i = 0; i < pointLightsCount; i++){
-		result += getPointLightColor(pointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, false);
-	}
-
-	// ShadowPointLight
-	for(unsigned int i = 0; i < shadowPointLightsCount; i++) {
-		result += getPointLightColor(shadowPointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, true);
-	}
-
-	color = result;
+	return projectionX + projectionY + projectionZ;
 }
 
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {

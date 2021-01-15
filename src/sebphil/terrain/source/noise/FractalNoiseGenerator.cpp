@@ -2,7 +2,7 @@
 #include <iostream>
 
 FractalNoiseGenerator::FractalNoiseGenerator():
-	amplitude(1), octaves(5), amplMultiplier(0.5), freqMultiplier(1.5), offsetX(420), offsetY(420) {}
+	amplitude(23), octaves(10), amplMultiplier(0.57), freqMultiplier(1.6), offsetX(420), offsetY(420) {}
 
 float FractalNoiseGenerator::fractalNoise(float x, float y) {
 

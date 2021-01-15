@@ -1,7 +1,7 @@
 #include "erosion/HydraulicErosion.h"
 
 HydraulicErosion::HydraulicErosion(std::uint32_t iterations):
-	iterations(iterations) {
+	amountOfDrops(iterations) {
     dropSettings.lifetime = 40;
     dropSettings.minSlope = 0.005;
     dropSettings.capacityMultiplier = 2.2;
@@ -18,7 +18,7 @@ void HydraulicErosion::erode(HeightMap& heightMap) {
     RandomGenerator randomX(0, heightMap.getLengthX() - 2);
     RandomGenerator randomY(0, heightMap.getLengthY() - 2);
 
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < amountOfDrops; i++) {
         float x = randomX.nextFloat();
         float y = randomY.nextFloat();
 
@@ -27,8 +27,8 @@ void HydraulicErosion::erode(HeightMap& heightMap) {
     }
 }
 
-int* HydraulicErosion::getIterationsPtr() {
-    return &iterations;
+int* HydraulicErosion::getDropAmountPtr() {
+    return &amountOfDrops;
 }
 
 DropletSettings* HydraulicErosion::getDropletSettingsPtr() {

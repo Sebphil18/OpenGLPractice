@@ -44,7 +44,7 @@ void TerrainModel::fillHeightMap() {
 	int lengthY = heightMap.getLengthY();
 	for (int x = 0; x < lengthX; x++) {
 		for (int y = 0; y < lengthY; y++) {
-			float value = noiseGenerator.fractalNoise(x, y);
+			float value = noiseGenerator.fractalNoise(x + 123, y + 643);
 			heightMap.setValue(x, y, value);
 		}
 	}
@@ -80,17 +80,18 @@ void TerrainModel::updateVertices() {
 }
 
 void TerrainModel::generateVertices(const glm::vec2& mapDimensions, std::vector<Vertex>& vertices) {
+
 	for (std::uint32_t x = 0; x < mapDimensions.x; x++) {
 		for (std::uint32_t y = 0; y < mapDimensions.y; y++) {
+
 			float value = heightMap.getValue(x, y);
 			Vertex vertex;
-			vertex.position = glm::vec3(x * scale, value, y * scale);
-			vertex.texCoord = glm::vec2(x * 0.2, y * 0.2);
-
+			vertex.position = glm::vec3(x * scale, value * scale * 5, y * scale);
 			vertex.normal = glm::vec3(0, 0, 0);
 			vertex.tangent = glm::vec3(1, 0, 0);
 			vertex.bitangent = glm::vec3(1, 0, 0);
 			vertices.push_back(vertex);
+
 		}
 	}
 }
@@ -99,23 +100,29 @@ void TerrainModel::generateNormals(const glm::vec2& mapDimensions, std::vector<V
 
 	for (std::uint32_t x = 0; x < mapDimensions.x; x++) {
 		for (std::uint32_t y = 0; y < mapDimensions.y; y++) {
-			glm::vec2 currentIndex = glm::vec2(x, y);
-			calculateNormal(currentIndex, vertices, mapDimensions);
+
+			glm::vec2 vertexPoint = glm::vec2(x, y);
+			glm::vec3 normal = calculateNormal(vertexPoint, vertices, mapDimensions);
+
+			std::size_t index = getIndex(vertexPoint, mapDimensions.y);
+			vertices[index].normal = normal;
+
 		}
 	}
 }
 
-void TerrainModel::calculateNormal(const glm::vec2& vertexPoint, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions) {
-
+// TODO: return normal nad assign it!
+glm::vec3 TerrainModel::calculateNormal(const glm::vec2& vertexPoint, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions) {
 	std::size_t index = getIndex(vertexPoint, mapDimensions.y);
 	Vertex& vertex = vertices[index];
-	glm::vec3& normal = vertex.normal;
+	glm::vec3 normal = vertex.normal;
+
 	VertexPointContainer vertexPointCon = { vertex, vertexPoint };
 
 	for (std::uint32_t i = 0; i < 6; i++)
 		normal += getNeighborNormal(vertexPointCon, vertices, mapDimensions, i);
 
-	normal = glm::normalize(normal);
+	return glm::normalize(normal);
 }
 
 glm::vec3 TerrainModel::getNeighborNormal(const VertexPointContainer& vertexPointCon, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions, unsigned int neighbor) {
@@ -159,7 +166,11 @@ std::size_t TerrainModel::getIndex(glm::vec2 vertexPoint, unsigned int lengthY) 
 	return static_cast<std::size_t>(vertexPoint.x) * lengthY + static_cast<std::size_t>(vertexPoint.y);
 }
 
-HeightMap* TerrainModel::getHeightMapPtr() {
+float* const TerrainModel::getScalePtr() {
+	return &scale;
+}
+
+HeightMap* const TerrainModel::getHeightMapPtr() {
 	return &heightMap;
 }
 

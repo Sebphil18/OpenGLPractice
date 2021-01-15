@@ -22,7 +22,6 @@ public:
 	inline PermutationTable(int seed);
 
 	void permute();
-	void reseed(int seed);
 
 	void setSeed(int seed);
 
@@ -36,23 +35,20 @@ public:
 template<int tablelength>
 inline PermutationTable<tablelength>::PermutationTable() :
 	indexRandom(0, tablelength), vectorRandom(-1, 1), length(tablelength) {
-	fillTable();
-	permuteValues();
+	permute();
 }
 
 template<int tablelength>
 inline PermutationTable<tablelength>::PermutationTable(int seed) :
 	indexRandom(0, tablelength, seed), vectorRandom(-1, 1, seed), length(tablelength) {
-	fillTable();
-	permuteValues();
+	permute();
 }
 
 template<int tablelength>
 inline void PermutationTable<tablelength>::setSeed(int seed) {
 	indexRandom.setSeed(seed);
 	vectorRandom.setSeed(seed);
-	fillTable();
-	permuteValues();
+	permute();
 }
 
 template<int tablelength>
@@ -78,12 +74,6 @@ void PermutationTable<tablelength>::permuteValues() {
 		indices[i] = indices[randIndex];
 		indices[i + tablelength] = indices[i];
 	}
-}
-
-template<int tablelength>
-void PermutationTable<tablelength>::reseed(int seed) {
-	indexRandom.setSeed(seed);
-	vectorRandom.setSeed(seed);
 }
 
 template<int tablelength>

@@ -23,7 +23,7 @@ private:
 	void generateVertices(const glm::vec2& mapDimensions, std::vector<Vertex>& vertices);
 
 	void generateNormals(const glm::vec2& mapDimensions, std::vector<Vertex>& vertices);
-	void calculateNormal(const glm::vec2& vertexPoint, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions);
+	glm::vec3 calculateNormal(const glm::vec2& vertexPoint, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions);
 	// TODO: to many arguments!
 	glm::vec3 getNeighborNormal(const VertexPointContainer& vertexPointCon, std::vector<Vertex>& vertices, const glm::vec2& mapDimensions, unsigned int neighbor);
 	inline bool isOutOfBounds(const glm::vec2& vertexPoint, const glm::vec2& mapDimensions) const;
@@ -39,7 +39,8 @@ public:
 	void fillHeightMap();
 	void resize(unsigned int lengthX, unsigned int lengthY);
 
-	HeightMap* getHeightMapPtr();
+	float* const getScalePtr();
+	HeightMap* const getHeightMapPtr();
 	FractalNoiseGenerator* const getNoiseGeneratorPtr();
 
 };

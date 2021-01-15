@@ -2,8 +2,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 Camera::Camera() :
-	movementSpeed(10), sensitivity(0.15), yaw(-90), pitch(0),
-	fieldOfView(45), near(0.05), far(300), width(1), height(1) {
+	movementSpeed(10), sensitivity(0.15f), yaw(-90.0f), pitch(0.0f),
+	fieldOfView(45), near(0.05f), far(300), width(1), height(1) {
 
 	setUpCamera();
 	setUpMatrices();
@@ -11,8 +11,8 @@ Camera::Camera() :
 }
 
 Camera::Camera(unsigned int width, unsigned int height): 
-	movementSpeed(10), sensitivity(0.15), yaw(-90), pitch(0),
-	fieldOfView(45), near(0.01), far(500), width(width), height(height) {
+	movementSpeed(10), sensitivity(0.15f), yaw(-90), pitch(0.0f),
+	fieldOfView(45.0f), near(0.01f), far(500), width(width), height(height) {
 
 	setUpCamera();
 	setUpMatrices();

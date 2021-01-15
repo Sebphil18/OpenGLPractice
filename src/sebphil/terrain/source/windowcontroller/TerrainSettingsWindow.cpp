@@ -10,11 +10,15 @@ TerrainSettingsWindow::TerrainSettingsWindow(const std::shared_ptr<TerrainModel>
 
 void TerrainSettingsWindow::draw() {
     ImGui::Begin("terrain-settings");
-    drawNoiseSettings();
 
+    drawNoiseSettings();
     ImGui::Separator();
 
     drawHeightMapSettings();
+    ImGui::Separator();
+
+    drawScaleSlider();
+
     ImGui::End();
 }
 
@@ -45,7 +49,7 @@ void TerrainSettingsWindow::addUpdateSliderInt(const char* title, int* value, in
 }
 
 void TerrainSettingsWindow::drawHeightMapSettings() {
-    addResizeSliders(&lengthX, &lengthY, 20, 500);
+    addResizeSliders(&lengthX, &lengthY, 20, 1000);
     addSeedInput(&seed);
 }
 
@@ -64,5 +68,11 @@ void TerrainSettingsWindow::addSeedInput(int* value) {
     if (ImGui::InputInt("seed", value)) {
         noiseGenerator->setSeed(*value);
         terrain->update();
+    }
+}
+
+void TerrainSettingsWindow::drawScaleSlider() {
+    if (ImGui::SliderFloat("scale", terrain->getScalePtr(), 0.1, 1)) {
+        terrain->update(false);
     }
 }

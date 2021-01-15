@@ -17,13 +17,16 @@ struct Bounds {
 	std::uint32_t minY, maxY;
 };
 
-// One HeightPoint represents one point on the heightmap
+// One HeightPoint represents one point on the heightmap, which can be located in the middle of a cell.
+// So every point has stored its cell-coordinates (integer values) and an offset into the "middle" of the cell.
 struct HeightMapPoint {
 	glm::vec2 point;
 	glm::vec2 delta;
 };
 
+// TODO: Outsource brush as pencil class on heightmap
 class Droplet {
+
 private:
 	float velocity;
 	float water;
@@ -34,15 +37,28 @@ private:
 	glm::vec2 direction;
 	glm::vec2 gradient;
 
+	HeightMap* heightmap;
+
 	HeightMapPoint getHeightMapPoint(glm::vec2 position);
 	void setDirection(const DropletSettings& settings);
-	bool positionIsOutOfBounds(glm::vec2 position, const HeightMap& heightmap);
-	float getHeight(glm::vec2 position, const HeightMap& heightmap);
-	void processSediment(const HeightMapPoint heightPoint, float deltaHeight, HeightMap& heightmap, const DropletSettings& settings);
-	void depositSediment(float deposit, const HeightMapPoint& heightPoint, HeightMap& heightmap);
-	void brush(glm::vec2 position, float strength, float radius, HeightMap& heightmap);
-	Bounds getBoundsOfBrush(glm::vec2 position, float radius, const HeightMap& heightmap);
+	bool positionIsOutOfBounds(glm::vec2 position);
+	float getHeight(glm::vec2 position);
+	glm::vec4 getHeightValuesOfCell(glm::vec2 point);
+
+	void processSediment(float deltaHeight, const HeightMapPoint heightPoint, const DropletSettings& settings);
+	
+	void dropRedundantSediment(float deltaHeight, const HeightMapPoint& heightpoint);
+	void dropSediment(float capacity, const HeightMapPoint& heightPoint, const DropletSettings& settings);
+	void depositSediment(float deposit, const HeightMapPoint& heightPoint);
+
+	void pickupSediment(float capacity, float deltaHeight, const DropletSettings& settings);
+
+	void brush(glm::vec2 position, float strength, float radius);
+	Bounds getBoundsOfBrush(glm::vec2 position, float radius);
 	bool pointIsInCircle(glm::vec2 delta, float radius);
+	float getErosionValue(glm::vec2 delta, float strength, float radius);
+	void applyErosionValue(float value, glm::vec2 quadPosition);
+
 	void updateVelocityAndWater(float deltaHeight, const DropletSettings& settings);
 
 public:

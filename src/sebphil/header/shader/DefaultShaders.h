@@ -3,7 +3,7 @@
 
 class DefaultShaders {
 public:
-	ShaderProgram phongProgram;
+	ShaderProgram standardProgram;
 	ShaderProgram skyboxProgram;
 	ShaderProgram dirShadowProgram;
 	ShaderProgram pointShadowProgram;
