@@ -4,8 +4,8 @@
 PointLight::PointLight() :
 	index(0),
 	constK(1),
-	linearK(0.04),
-	quadraticK(0.032),
+	linearK(0.04f),
+	quadraticK(0.032f),
 	position(glm::vec3(0, 0, 0)),
 	diffuseColor(glm::vec3(1, 1, 1)),
 	specularColor(glm::vec3(0.8, 0.8, 0.8)),
@@ -15,8 +15,8 @@ PointLight::PointLight() :
 PointLight::PointLight(std::size_t index):
 	index(index),
 	constK(1),
-	linearK(0.04),
-	quadraticK(0.032),
+	linearK(0.04f),
+	quadraticK(0.032f),
 	position(glm::vec3(0, 0, 0)),
 	diffuseColor(glm::vec3(1, 1, 1)),
 	specularColor(glm::vec3(0.8, 0.8, 0.8)),

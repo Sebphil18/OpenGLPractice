@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <random>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -9,108 +10,121 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/noise.hpp"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 #include "camera/Camera.h"
 #include "globjects/UniformBuffer.h"
 #include "modelstructure/ModelLoader.h"
-#include "light/LightBundle.h"
-#include "light/ShadowPointLight.h"
+#include "terrainmodel/TerrainModel.h"
 #include "window/Application.h"
 #include "window/Window.h"
 #include "scene/Scene.h"
 #include "shader/DefaultShaders.h"
+#include "imgui/ImGuiInterface.h"
+#include "windowcontroller/TerrainSettingsWindow.h"
+#include "windowcontroller/HydraulicErosionWindow.h"
+#include "heightmap/SpecialEffect.h"
+#include "erosion/HydraulicErosion.h"
 
-#define SEB_DEBUGMODE 1
-
-#ifndef SEB_APP
-#define SEB_APP 1
-
-static Camera cam(800, 800);
+static Camera cam(1200, 800);
 static bool isFirstMouseMove = true;
 static float lastX = 0, lastY = 0;
 static double frameTime = 0;
 static std::vector<Window> windows;
 
-void startRenderLoop(int* width, int* height, GLFWwindow* window);
-void setUpMatrixUbo(UniformBuffer& matrixUbo);
-void setSkyboxTextures(SkyBox& skybox);
+static void setWindowCallbacks(Window& window);
+static void startRenderLoop(int* width, int* height, GLFWwindow* window);
 
-void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo);
-void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* width, int* height);
-void drawModels(std::vector<std::shared_ptr<Model>>& models, UniformBuffer& matrixUbo, ShaderProgram& program);
+static void setUpMatrixUbo(UniformBuffer& matrixUbo);
+static std::shared_ptr<TerrainModel> createTerrain();
+static std::shared_ptr<ModelLoader> createPreviewSphere();
+static void setSkyboxTextures(SkyBox& skybox);
+static void setUpLights(Scene& scene);
 
-void printFrameData(double& timeAtLastFrame);
-void resizeFrameBuffer(GLFWwindow* window, int width, int height);
-void processMouse(GLFWwindow* window, double xpos, double ypos);
-void processInput(GLFWwindow* window);
+static void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo);
+static void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* width, int* height);
+static void drawModels(std::vector<std::shared_ptr<Model>>& models, UniformBuffer& matrixUbo, ShaderProgram& program);
+static void printFrameData(double& timeAtLastFrame);
 
+static void resizeFrameBuffer(GLFWwindow* window, int width, int height);
+static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
+static void processInput(GLFWwindow* window);
+static void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+// TODO: cleanUp
+// TODO: add support for multiple normal maps
+// TODO: cleanUp shader
+// TODO: add more control over shader
+// TODO: add control window for shader, textures etc.
+// TODO: optimise NoiseGenerator, optimise Erosion algorithm, 
 int main() {
-
     Application app;
-    Window win("Test-Window", 800, 800);
+    Window win("Terrain-Generation Demo", 1200, 800);
+
+    setWindowCallbacks(win);
+    windows.push_back(win);
 
     int width = win.getWidth();
     int height = win.getHeight();
-
-    win.setFramebufferSizeCallback(resizeFrameBuffer);
-    win.setCursorPosCallback(processMouse);
-
-    windows.push_back(win);
-
     startRenderLoop(&width, &height, win.getGlfwWindow());
 
     return 0;
 }
 
-void startRenderLoop(int* width, int* height, GLFWwindow* window) {
+void setWindowCallbacks(Window& window) {
+    window.setFramebufferSizeCallback(resizeFrameBuffer);
+    window.setCursorPosCallback(onMouseMove);
+    window.setKeyCallback(onKeyPressed);
+}
 
+// TODO: too long!
+void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     Scene scene;
     DefaultShaders shaders;
+    
+    ImGuiInterface imgui(window);
 
     UniformBuffer matrixUbo(4, 4 * sizeof(glm::mat4));
     setUpMatrixUbo(matrixUbo);
+    
+    ShaderProgram landscapeProgram(
+        "src/sebphil/shader/vertex/VertexLandscape.glsl",
+        "src/sebphil/shader/geometry/GeoLandscape.glsl",
+        "src/sebphil/shader/fragment/FragmentLandscape.glsl");
+    shaders.standardProgram = landscapeProgram;
 
-    ShaderProgram& program = shaders.phongProgram;
+    ShaderProgram& program = shaders.standardProgram;
     ShaderProgram& skyBoxProgram = shaders.skyboxProgram;
 
     program.bindUniformBuffer(matrixUbo.getSlot(), "matrices");
     skyBoxProgram.bindUniformBuffer(matrixUbo.getSlot(), "matrices");
 
-    std::shared_ptr<ModelLoader> modelLoader = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
-    modelLoader->getLastMesh().setMaterial({glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20});
-    modelLoader->addTexture2D("rec/textures/BrickText.jpg", TextureType::diffuse, 0);
-    modelLoader->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
-    modelLoader->addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);
-    modelLoader->setPosition(glm::vec3(-5, 0, -5));
-
-    std::shared_ptr<ModelLoader> modelLoader2 = std::make_shared<ModelLoader>("rec/shapes/teapot/Teapot.obj");
-    modelLoader2->setPosition(glm::vec3(10, 0, 0));
-    modelLoader2->getMesh(0).setMaterial({glm::vec4(0.8, 0.8, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.2, 0.2, 0, 1), 40});
-
-    std::shared_ptr<ModelLoader> modelLoader3 = std::make_shared<ModelLoader>("rec/shapes/plane/plane.obj");
-    modelLoader3->getMesh(0).setMaterial({glm::vec4(0.9, 0.9, 0.9, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 32});
-    modelLoader3->setPosition(glm::vec3(0, -2, 0));
-    modelLoader3->setSize(glm::vec3(3, 3, 3));
+    std::shared_ptr<ModelLoader> sphere = createPreviewSphere();
+    std::shared_ptr<TerrainModel> terrain = createTerrain();
 
     std::vector<std::shared_ptr<Model>>& models = scene.models;
-    models.push_back(modelLoader);
-    models.push_back(modelLoader2);
-    models.push_back(modelLoader3);
+    models.push_back(sphere);
+    models.push_back(terrain);
     
     setSkyboxTextures(scene.skyBox);
+    setUpLights(scene);
 
-    ShadowLightBundle& shadowLights = scene.shadowLights;    
-    shadowLights.enablePointLight(program);
-    shadowLights.enableDirLight(program);
-    shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
+    HydraulicErosionWindow erosionSettings(terrain);
+    TerrainSettingsWindow terrainSettings(terrain);
 
-    unsigned long frame = 0;
     double timeAtLastFrame = 0;
-
     windows[0].focus();
-    while (!glfwWindowShouldClose(window)) {
 
+    while (!glfwWindowShouldClose(window)) {
         update(scene, shaders, matrixUbo);
         draw(scene, shaders, matrixUbo, width, height);
+
+        imgui.newFrame();
+        terrainSettings.draw();
+        erosionSettings.draw();
+        imgui.render();
 
         glfwGetWindowSize(window, width, height);
         processInput(window);
@@ -119,7 +133,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         glfwPollEvents();
 
         printFrameData(timeAtLastFrame);
-        frame++;
     }
 
 }
@@ -129,6 +142,29 @@ void setUpMatrixUbo(UniformBuffer& matrixUbo) {
     matrixUbo.setElementType(1, UniformType::matrix4);
     matrixUbo.setElementType(2, UniformType::matrix4);
     matrixUbo.setElementType(3, UniformType::matrix4);
+}
+
+std::shared_ptr<ModelLoader> createPreviewSphere() {
+    std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
+    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20 });
+    sphere->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/ground/Grass2Occ.jpg", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
+    sphere->setPosition(glm::vec3(-8, 0, -8));
+
+    return sphere;
+}
+
+std::shared_ptr<TerrainModel> createTerrain() {
+    std::shared_ptr<TerrainModel> terrain = std::make_shared<TerrainModel>();
+    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1), 5 });
+    terrain->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/rock/RockOcc.jpg", TextureType::specular, 0);
+    terrain->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
+
+    return terrain;
 }
 
 void setSkyboxTextures(SkyBox& skybox) {
@@ -143,16 +179,29 @@ void setSkyboxTextures(SkyBox& skybox) {
     skybox.loadTextures(paths);
 }
 
+void setUpLights(Scene& scene) {
+    //ShadowLightBundle& shadowLights = scene.shadowLights;    
+    //shadowLights.enablePointLight(program);
+    //shadowLights.enableDirLight(program);
+    //shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
+    //shadowLights.pointLight.setK(1, 0.0001, 0.00001);
+
+    LightBundle& lights = scene.lights;
+    DirectionLight dirLight;
+    dirLight.setDirection(glm::vec3(0.3, -0.4, 0));
+    lights.dirLights.push_back(dirLight);
+}
+
 void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo) {
     matrixUbo.bind();
     matrixUbo.setElementData(0, glm::value_ptr(cam.getProjectionMatrix()));
     matrixUbo.setElementData(1, glm::value_ptr(cam.getViewMatrix()));
     matrixUbo.unbind();
 
-    shaders.phongProgram.setUniformVec3f("viewPos", cam.getPosition());
+    shaders.standardProgram.setUniformVec3f("viewPos", cam.getPosition());
 
-    scene.lights.update(shaders.phongProgram);
-    scene.shadowLights.update(scene.models, shaders.dirShadowProgram, shaders.pointShadowProgram, shaders.phongProgram);
+    scene.lights.update(shaders.standardProgram);
+    scene.shadowLights.update(scene.models, shaders.dirShadowProgram, shaders.pointShadowProgram, shaders.standardProgram);
 }
 
 void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* width, int* height) {
@@ -163,11 +212,11 @@ void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* 
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, *width, *height);
+
     glEnable(GL_CULL_FACE);
-
-    drawModels(scene.models, matrixUbo, shaders.phongProgram);
-
+    drawModels(scene.models, matrixUbo, shaders.standardProgram);
     glDisable(GL_CULL_FACE);
+
     scene.skyBox.draw(shaders.skyboxProgram);
 }
 
@@ -188,9 +237,9 @@ void printFrameData(double& timeAtLastFrame) {
     timeAtLastFrame = currentTime;
     float fps = 1 / frameTime;
 
-    std::cout << "INFO::FRAME::frameTime: " << frameTime << std::endl;
-    std::cout << "INFO::FRAME::framerate: " << (int)fps << std::endl;
-    std::cout << std::endl;
+    std::cout << "INFO::FRAME::frametime: " << frameTime << "s  \n";
+    std::cout << "INFO::FRAME::framerate: " << (int)fps << "fps \n";
+    std::cout << "\n";
 }
 
 void resizeFrameBuffer(GLFWwindow* window, int width, int height) {
@@ -213,15 +262,15 @@ void processInput(GLFWwindow* window) {
     }
 }
 
-void processMouse(GLFWwindow* window, double xpos, double ypos) {
+void onMouseMove(GLFWwindow* window, double xpos, double ypos) {
+
+    if (glfwGetInputMode(window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED)
+        return;
 
     if (isFirstMouseMove) {
-
         isFirstMouseMove = false;
-
         lastX = xpos;
         lastY = ypos;
-
     }
 
     float xoffset = xpos - lastX;
@@ -230,6 +279,17 @@ void processMouse(GLFWwindow* window, double xpos, double ypos) {
     lastY = ypos;
 
     cam.moveYawAndPitch(xoffset, yoffset);
+}
+
+void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        int inputMode = glfwGetInputMode(window, GLFW_CURSOR);
+        if (inputMode == GLFW_CURSOR_DISABLED)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        isFirstMouseMove = true;
+    }
 
 }
-#endif

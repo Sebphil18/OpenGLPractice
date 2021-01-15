@@ -159,6 +159,10 @@ void Model::pushbackNewMesh() {
 	meshes.push_back(Mesh());
 }
 
+void Model::pushbackNewMesh(std::size_t verticesLength) {
+	meshes.push_back(Mesh(verticesLength));
+}
+
 void Model::removeMesh(std::size_t index) {
 	meshes.erase(meshes.begin() + index);
 }
