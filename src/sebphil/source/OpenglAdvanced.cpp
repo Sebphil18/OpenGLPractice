@@ -93,7 +93,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         "src/sebphil/shader/vertex/VertexLandscape.glsl",
         "src/sebphil/shader/geometry/GeoLandscape.glsl",
         "src/sebphil/shader/fragment/FragmentLandscape.glsl");
-    shaders.standardProgram = landscapeProgram;
+    //shaders.standardProgram = landscapeProgram;
 
     ShaderProgram& program = shaders.standardProgram;
     ShaderProgram& skyBoxProgram = shaders.skyboxProgram;
@@ -102,17 +102,17 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     skyBoxProgram.bindUniformBuffer(matrixUbo.getSlot(), "matrices");
 
     std::shared_ptr<ModelLoader> sphere = createPreviewSphere();
-    std::shared_ptr<TerrainModel> terrain = createTerrain();
+    //std::shared_ptr<TerrainModel> terrain = createTerrain();
 
     std::vector<std::shared_ptr<Model>>& models = scene.models;
     models.push_back(sphere);
-    models.push_back(terrain);
+    //models.push_back(terrain);
     
     setSkyboxTextures(scene.skyBox);
     setUpLights(scene);
 
-    HydraulicErosionWindow erosionSettings(terrain);
-    TerrainSettingsWindow terrainSettings(terrain);
+    //HydraulicErosionWindow erosionSettings(terrain);
+    //TerrainSettingsWindow terrainSettings(terrain);
 
     /*ShadowLightBundle& shadowLights = scene.shadowLights;
     shadowLights.enablePointLight(shaders.standardProgram);
@@ -137,7 +137,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         update(scene, shaders, matrixUbo);
         draw(scene, shaders, matrixUbo, width, height);
 
-        imgui.newFrame();
+       /* imgui.newFrame();
         terrainSettings.draw();
         erosionSettings.draw();
 
@@ -154,9 +154,9 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         if (ImGui::SliderFloat("rock-texture-offset", &rockOffset, 0.1, 1.5)) {
             program.setUniform1f("rockOffset", rockOffset);
         }
-        ImGui::End();
+        ImGui::End();*/
 
-        imgui.render();
+        // imgui.render();
 
         glfwGetWindowSize(window, width, height);
         processInput(window);
@@ -179,10 +179,14 @@ void setUpMatrixUbo(UniformBuffer& matrixUbo) {
 std::shared_ptr<ModelLoader> createPreviewSphere() {
     std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
     sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0, 1), 20 });
-    sphere->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
+    /*sphere->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock/RockOcc.jpg", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
+    sphere->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);*/
+    sphere->addTexture2D("rec/textures/BrickDiff.jpg", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::ambient, 0);
+    sphere->addTexture2D("rec/textures/BrickNormal.jpg", TextureType::normal, 0);
 
     return sphere;
 }
@@ -213,7 +217,7 @@ void setSkyboxTextures(SkyBox& skybox) {
 void setUpLights(Scene& scene) {
     LightBundle& lights = scene.lights;
     DirectionLight dirLight;
-    dirLight.setDirection(glm::vec3(0.3, -1, 0));
+    dirLight.setDirection(glm::vec3(0.4, -1, 0));
     lights.dirLights.push_back(dirLight);
 }
 

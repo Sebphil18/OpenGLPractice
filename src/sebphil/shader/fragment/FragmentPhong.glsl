@@ -60,6 +60,8 @@ uniform sampler2D shadowMap;
 uniform samplerCube pointShadowMap;
 
 in FragmentData {
+
+	vec3 fPosition;
 	vec3 fNormal;
 	vec2 fTexCoord;
 	vec3 fTangent;
@@ -68,6 +70,9 @@ in FragmentData {
 	vec4 fTangentLightPos;
 	vec3 fTangentPos;
 	vec3 fTangentViewDir;
+
+	mat3 tbnMatrix;
+
 } fragmentIn;
 
 out vec4 color;
@@ -164,9 +169,9 @@ vec3 getNormal() {
 
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {
 
-	// TODO: specular Lighting is bugged!
-	vec3 lightDir = normalize(-light.direction);
-	vec3 halfway = normalize(lightDir + viewDir);
+	// TODO: do matrix multiplication in vertexShader -> move light arrays into vertex shader and pass to fragmentShader
+	vec3 lightDir = fragmentIn.tbnMatrix * normalize(-light.direction);
+	vec3 halfway = normalize(lightDir - viewDir);
 
 	float diffuse = max(dot(normal, lightDir), 0.0);
 	float spec = pow(max(dot(normal, halfway), 0.0), material.shininess);
@@ -182,9 +187,10 @@ vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diff
 
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow){
 
+	// TODO: do matrix multiplication in vertexShader -> move light arrays into vertex shader and pass to fragmentShader
 	// TODO: specular Lighting is bugged!
-	vec3 dirToLight = normalize(light.position - fPosition);
-	vec3 halfway = normalize(viewDir + dirToLight);
+	vec3 dirToLight = fragmentIn.tbnMatrix * normalize(light.position - fragmentIn.fPosition);
+	vec3 halfway = normalize(viewDir - dirToLight);
 
 	float distanceToLight = distance(light.position, fPosition);
 	float attentuation = 1.0 / (light.constantK + light.linearK * distanceToLight + light.quadraticK * (distanceToLight * distanceToLight));
