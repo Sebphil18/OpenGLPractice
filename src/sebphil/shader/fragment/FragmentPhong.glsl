@@ -13,10 +13,9 @@ struct Material{
 	vec4 ambientColor;
 	
 	sampler2D diffuse0;
-	sampler2D diffuse1;
 	sampler2D specular0;
 	sampler2D ambient0;
-	sampler2D normal;
+	sampler2D normal0;
 };
 
 struct DirectionLight{
@@ -61,17 +60,24 @@ uniform sampler2D shadowMap;
 uniform samplerCube pointShadowMap;
 
 in FragmentData {
-	vec3 fPosition;
 	vec3 fNormal;
 	vec2 fTexCoord;
 	vec3 fTangent;
 	vec3 fBitangent;
-	mat3 tbnMatrix;
-	vec4 fLightPosition;
-	vec3 fViewPos;
+
+	vec4 fTangentLightPos;
+	vec3 fTangentPos;
+	vec3 fTangentViewDir;
 } fragmentIn;
 
 out vec4 color;
+
+vec4 getDiffuseColor();
+vec4 getSpecularColor();
+vec4 getAmbientColor();
+vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord);
+
+vec3 getNormal();
 
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
@@ -80,43 +86,16 @@ float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal);
 
 void main() {
 
-	vec3 viewDir = normalize(fragmentIn.fViewPos - fragmentIn.fPosition);
+	vec3 viewDir = fragmentIn.fTangentViewDir;
 
-	vec4 diffTexture = texture(material.diffuse0, fragmentIn.fTexCoord);
-	vec4 specTexture = texture(material.specular0, fragmentIn.fTexCoord);
 	vec4 ambientTexture = texture(material.ambient0, fragmentIn.fTexCoord);
 
-	vec4 diffuseColor;
-
-	if(diffTexture.x == 0 && diffTexture.y == 0 && diffTexture.z == 0) {
-		diffuseColor = material.diffuseColor;
-	} else {
-		diffuseColor = diffTexture;
-	}
-
-	vec4 specularColor;
-	if(specTexture.x == 0 && specTexture.y == 0 && specTexture.z == 0) {
-		specularColor = material.specularColor;
-	} else {
-		specularColor = specTexture;
-	}
-
-	vec4 ambientColor;
-	if(ambientTexture.x == 0 && ambientTexture.y == 0 && ambientTexture.z == 0) {
-		ambientColor = material.ambientColor;
-	} else {
-		ambientColor = ambientTexture;
-	}
+	vec4 diffuseColor = getDiffuseColor();
+	vec4 specularColor = getSpecularColor();
+	vec4 ambientColor = getAmbientColor();
 
 	// Normal-Mapping
-	vec3 normal = normalize(fragmentIn.fNormal);
-	vec3 position = fragmentIn.fPosition;
-	vec3 normalMapCol = texture(material.normal, fragmentIn.fTexCoord).rgb;
-	if(length(normalMapCol) != 0) {
-		normal = normalMapCol * 2 - 1;
-		normal = fragmentIn.tbnMatrix * normal;
-		normal = normalize(normal);
-	}
+	vec3 normal = getNormal();
 
 	vec4 result = vec4(0, 0, 0, 1);
 
@@ -130,21 +109,62 @@ void main() {
 	}
 
 	for(unsigned int i = 0; i < pointLightsCount; i++){
-		result += getPointLightColor(pointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, false);
+		result += getPointLightColor(pointLights[i], normal, viewDir, fragmentIn.fTangentPos, diffuseColor, specularColor, ambientColor, false);
 	}
 
 	// ShadowPointLight
 	for(unsigned int i = 0; i < shadowPointLightsCount; i++) {
-		result += getPointLightColor(shadowPointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, true);
+		result += getPointLightColor(shadowPointLights[i], normal, viewDir, fragmentIn.fTangentPos, diffuseColor, specularColor, ambientColor, true);
 	}
 
 	color = result;
 }
 
+vec4 getDiffuseColor() {
+	vec4 diffuseColor = getMaterialColor(material.diffuseColor, material.diffuse0, fragmentIn.fTexCoord);
+	return diffuseColor;
+}
+
+vec4 getSpecularColor() {
+	vec4 specularColor = getMaterialColor(material.specularColor, material.specular0, fragmentIn.fTexCoord);
+	return specularColor;
+}
+
+vec4 getAmbientColor() {
+	vec4 ambientColor = getMaterialColor(material.ambientColor, material.ambient0, fragmentIn.fTexCoord);
+	return ambientColor;
+}
+
+vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord) {
+	
+	vec4 textureColor = texture(texture2d, texCoord);
+	vec4 materialColor;
+
+	if(textureColor.x == 0 && textureColor.y == 0 && textureColor.z == 0) {
+		materialColor = baseColor;
+	} else {
+		materialColor = textureColor;
+	}
+
+	return materialColor;
+}
+
+vec3 getNormal() {
+
+	vec3 normal = normalize(fragmentIn.fNormal);
+	vec3 normalMapCol = texture(material.normal0, fragmentIn.fTexCoord).rgb;
+
+	if(length(normalMapCol) != 0) {
+		normal = normalMapCol * 2 - 1;
+		normal = normalize(normal);
+	}
+
+	return normal;
+}
+
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {
 
-	// fPosition, viewPos and light.direction can be precalculated in vertex shader using transpose of tbnMatrix - only for color calculations, not for shadow!
-	// precalculating these in vertex shader is much more efficient
+	// TODO: specular Lighting is bugged!
 	vec3 lightDir = normalize(-light.direction);
 	vec3 halfway = normalize(lightDir + viewDir);
 
@@ -155,15 +175,14 @@ vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diff
 	vec4 specularResult = spec * specularColor * vec4(light.specularColor, 1.0f);
 	vec4 ambientResult = ambientColor * vec4(light.ambientColor, 1.0f);
 
-	float shadow = castShadow == true ? calcShadow(fragmentIn.fLightPosition, normal, lightDir) : 1.0;
+	float shadow = castShadow == true ? calcShadow(fragmentIn.fTangentLightPos, normal, lightDir) : 1.0;
 
 	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
 
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow){
 
-	// fPosition, viewPos and light.position can be precalculated in vertex shader using transpose of tbnMatrix - only for color calculations, not for shadow!
-	// precalculating these in vertex shader is much more efficient
+	// TODO: specular Lighting is bugged!
 	vec3 dirToLight = normalize(light.position - fPosition);
 	vec3 halfway = normalize(viewDir + dirToLight);
 

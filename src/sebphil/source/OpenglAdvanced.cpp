@@ -53,12 +53,12 @@ static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
 static void processInput(GLFWwindow* window);
 static void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-// TODO: cleanUp
-// TODO: add support for multiple normal maps
-// TODO: cleanUp shader
+// TODO: add support for multiple normals in fragment shader 
+// TODO: do TBN in vertex/geometry shader
 // TODO: add more control over shader
 // TODO: add control window for shader, textures etc.
-// TODO: optimise NoiseGenerator, optimise Erosion algorithm, 
+// TODO: optimise NoiseGenerator, optimise Erosion algorithm
+// TODO: refactor ModelLoader::addAiMesh: too long!
 int main() {
     Application app;
     Window win("Terrain-Generation Demo", 1200, 800);
@@ -114,6 +114,22 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     HydraulicErosionWindow erosionSettings(terrain);
     TerrainSettingsWindow terrainSettings(terrain);
 
+    /*ShadowLightBundle& shadowLights = scene.shadowLights;
+    shadowLights.enablePointLight(shaders.standardProgram);
+    shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
+    shadowLights.pointLight.setK(1, 0.0001, 0.00001);*/
+
+    float slope = 1;
+    float rockLevel = 8;
+    float grassOffset = 1;
+    float rockOffset = 1;
+
+    // TODO: shaderwindow
+    program.setUniform1f("slope", slope);
+    program.setUniform1f("rockLevel", rockLevel);
+    program.setUniform1f("grassOffset", grassOffset);
+    program.setUniform1f("rockOffset", rockOffset);
+
     double timeAtLastFrame = 0;
     windows[0].focus();
 
@@ -124,6 +140,22 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         imgui.newFrame();
         terrainSettings.draw();
         erosionSettings.draw();
+
+        ImGui::Begin("shader settings");
+        if (ImGui::SliderFloat("slope", &slope, 0.01, 3)) {
+            program.setUniform1f("slope", slope);
+        }
+        if (ImGui::SliderFloat("rock-level", &rockLevel, 0, 20)) {
+            program.setUniform1f("rockLevel", rockLevel);
+        }
+        if (ImGui::SliderFloat("grass-texture-offset", &grassOffset, 0.1, 1.5)) {
+            program.setUniform1f("grassOffset", grassOffset);
+        }
+        if (ImGui::SliderFloat("rock-texture-offset", &rockOffset, 0.1, 1.5)) {
+            program.setUniform1f("rockOffset", rockOffset);
+        }
+        ImGui::End();
+
         imgui.render();
 
         glfwGetWindowSize(window, width, height);
@@ -146,12 +178,11 @@ void setUpMatrixUbo(UniformBuffer& matrixUbo) {
 
 std::shared_ptr<ModelLoader> createPreviewSphere() {
     std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
-    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20 });
+    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0, 1), 20 });
     sphere->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/ground/Grass2Occ.jpg", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/rock/RockOcc.jpg", TextureType::specular, 0);
     sphere->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
-    sphere->setPosition(glm::vec3(-8, 0, -8));
 
     return sphere;
 }
@@ -180,15 +211,9 @@ void setSkyboxTextures(SkyBox& skybox) {
 }
 
 void setUpLights(Scene& scene) {
-    //ShadowLightBundle& shadowLights = scene.shadowLights;    
-    //shadowLights.enablePointLight(program);
-    //shadowLights.enableDirLight(program);
-    //shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
-    //shadowLights.pointLight.setK(1, 0.0001, 0.00001);
-
     LightBundle& lights = scene.lights;
     DirectionLight dirLight;
-    dirLight.setDirection(glm::vec3(0.3, -0.4, 0));
+    dirLight.setDirection(glm::vec3(0.3, -1, 0));
     lights.dirLights.push_back(dirLight);
 }
 

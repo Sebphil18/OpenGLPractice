@@ -16,7 +16,7 @@ struct Material{
 	sampler2D diffuse1;
 	sampler2D specular0;
 	sampler2D ambient0;
-	sampler2D normal;
+	sampler2D normal0;
 };
 
 struct DirectionLight{
@@ -52,6 +52,11 @@ uniform int shadowPointLightsCount;
 
 uniform float far;
 
+uniform float slope;
+uniform float rockLevel;
+uniform float grassOffset;
+uniform float rockOffset;
+
 uniform DirectionLight dirLights[MAX_NUMBER_OF_DIRLIGHTS];
 uniform DirectionLight shadowDirLights[MAX_NUMBER_OF_SHADOW_DIR_LIGHTS];
 uniform PointLight pointLights[MAX_NUMBER_OF_POINTLIGHTS];
@@ -73,10 +78,11 @@ in FragmentData {
 out vec4 color;
 
 vec4 getDiffuseColor();
+float getWeight();
 vec4 getSpecularColor();
 vec4 getAmbientColor();
 vec3 getNormal(sampler2D normalMap);
-vec4 getTexture(sampler2D sampleTexture);
+vec4 getTexture(sampler2D sampleTexture, float offset = 1);
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir);
@@ -86,7 +92,7 @@ void main() {
 
 	vec3 position = fragmentIn.fPosition;
 	vec3 viewDir = normalize(fragmentIn.fViewPos - position);
-	vec3 normal = getNormal(material.normal);
+	vec3 normal = getNormal(material.normal0);
 
 	vec4 diffuseColor = getDiffuseColor();
 	vec4 specularColor = getSpecularColor();
@@ -113,21 +119,28 @@ void main() {
 }
 
 vec4 getDiffuseColor() {
-	vec4 diffTexture = getTexture(material.diffuse0);
-	vec4 diffTexture2 = getTexture(material.diffuse1);
-	
-	// is current height greater then sea level?
-	float height = fragmentIn.fPosition.y >= 0 ? fragmentIn.fPosition.y : 0;
-	// how much is fragment inclined? if not inclined d = 1
-	float d = dot(vec3(0, 1, 0), fragmentIn.fNormal);
+	vec4 rockTexture = getTexture(material.diffuse0, rockOffset);
+	vec4 grassTexture = getTexture(material.diffuse1, grassOffset);
 
-	// weigth: when 1 -> grassTexture; when 0 -> rockTexture; higher means fewer grass; at height 8 no grass will be drawn
-	float weigth = (1 - height / 8) * d;
-	weigth = max(0, weigth);
+	float weight = getWeight();
 
-	vec4 diffuseColor = mix(diffTexture, diffTexture2, weigth);
+	vec4 diffuseColor = mix(rockTexture, grassTexture, weight);
 
 	return diffuseColor;
+}
+
+// returns 1 when surface is even; 0 when surface is tilted by 90°
+float getWeight() {
+	
+	float d = dot(vec3(0, 1, 0), fragmentIn.fNormal);
+	float height = fragmentIn.fPosition.y;
+
+	height = height >= 0 ? height : 0;
+
+	float weight = 1 - height / rockLevel;
+	weight = clamp(weight * d, 0, 1);
+
+	return pow(weight, slope);
 }
 
 vec4 getSpecularColor() {
@@ -157,28 +170,28 @@ vec4 getAmbientColor() {
 }
 
 vec3 getNormal(sampler2D normalMap) {
-	vec3 normal = normalize(fragmentIn.fNormal);
+	vec3 normal = fragmentIn.fNormal;
 	vec3 normalMapCol = getTexture(normalMap).rgb;
 
 	if(length(normalMapCol) != 0) {
 		normal = normalMapCol * 2 - 1;
 		normal = fragmentIn.tbnMatrix * normal;
-		normal = normalize(normal);
 	}
 
+	normal = normalize(normal);
 	return normal;
 }
 
 // triplanar-mapping
-vec4 getTexture(sampler2D sampleTexture) {
+vec4 getTexture(sampler2D sampleTexture, float offset = 1) {
 
 	vec3 worldPos = fragmentIn.fPosition;
 	vec3 blend = abs(fragmentIn.fNormal);
 	blend /= blend.x + blend.y + blend.z;
 	
-	vec4 projectionX = texture(sampleTexture, worldPos.yz) * blend.x;
-	vec4 projectionY = texture(sampleTexture, worldPos.xz) * blend.y;
-	vec4 projectionZ = texture(sampleTexture, worldPos.xy) * blend.z;
+	vec4 projectionX = texture(sampleTexture, worldPos.yz * offset) * blend.x;
+	vec4 projectionY = texture(sampleTexture, worldPos.xz * offset) * blend.y;
+	vec4 projectionZ = texture(sampleTexture, worldPos.xy * offset) * blend.z;
 
 	return projectionX + projectionY + projectionZ;
 }

@@ -3,14 +3,14 @@
 HydraulicErosion::HydraulicErosion(std::uint32_t iterations):
 	amountOfDrops(iterations) {
     dropSettings.lifetime = 40;
-    dropSettings.minSlope = 0.005;
-    dropSettings.capacityMultiplier = 2.2;
+    dropSettings.minSlope = 0.15;
+    dropSettings.capacityMultiplier = 19;
     dropSettings.inertiaMultiplier = 0.2;
-    dropSettings.depositRate = 0.1;
-    dropSettings.erosionRate = 0.13;
-    dropSettings.gravity = 6;
+    dropSettings.depositRate = 0.15;
+    dropSettings.erosionRate = 0.85;
+    dropSettings.gravity = 0.13;
     dropSettings.evaporationRate = 0.01;
-    dropSettings.brushRadius = 5;
+    dropSettings.brushRadius = 1.48;
 }
 
 void HydraulicErosion::erode(HeightMap& heightMap) {

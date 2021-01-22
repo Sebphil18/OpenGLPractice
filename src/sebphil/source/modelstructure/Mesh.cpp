@@ -165,6 +165,7 @@ void Mesh::activateTextures(ShaderProgram& program) {
 	}
 }
 
+// TODO: too long
 std::string Mesh::getTexUniformName(CountIterators& iterators, TextureType texType) {
 
 	std::string uniformName;
@@ -179,7 +180,8 @@ std::string Mesh::getTexUniformName(CountIterators& iterators, TextureType texTy
 		uniformName = "material.ambient" + std::to_string(iterators.ambientCount);
 		iterators.ambientCount++;
 	} else if (texType == TextureType::normal) {
-		uniformName = "material.normal";
+		uniformName = "material.normal" +  std::to_string(iterators.normalCount);
+		iterators.normalCount++;
 	}
 
 	return uniformName;
