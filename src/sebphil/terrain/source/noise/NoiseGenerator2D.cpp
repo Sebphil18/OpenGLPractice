@@ -20,19 +20,23 @@ float NoiseGenerator2D::noise(float x, float y) {
 }
 
 void NoiseGenerator2D::getGradients(GridCell& cell) {
+	
 	std::size_t minX = static_cast<int>(cell.floorX) % permutation.getLength();
 	std::size_t minY = static_cast<int>(cell.floorY) % permutation.getLength();
 	std::size_t maxX = static_cast<int>(minX + 1) % permutation.getLength();
 	std::size_t maxY = static_cast<int>(minY + 1) % permutation.getLength();
-	cell.gradients[0] = permutation.getVector(permutation.getIndex(minX, minY));
-	cell.gradients[1] = permutation.getVector(permutation.getIndex(maxX, minY));
-	cell.gradients[2] = permutation.getVector(permutation.getIndex(minX, maxY));
-	cell.gradients[3] = permutation.getVector(permutation.getIndex(maxX, maxY));
+
+	cell.gradients[0] = permutation.getVector(permutation.get1DIndex(minX, minY));
+	cell.gradients[1] = permutation.getVector(permutation.get1DIndex(maxX, minY));
+	cell.gradients[2] = permutation.getVector(permutation.get1DIndex(minX, maxY));
+	cell.gradients[3] = permutation.getVector(permutation.get1DIndex(maxX, maxY));
 }
 
 void NoiseGenerator2D::calculateCenterVectors(GridCell& cell) {
+
 	float x2 = cell.deltaX - 1.0f;
 	float y2 = cell.deltaY - 1.0f;
+
 	cell.centerVectors[0] = glm::vec2(cell.deltaX, cell.deltaY);
 	cell.centerVectors[1] = glm::vec2(x2, cell.deltaY);
 	cell.centerVectors[2] = glm::vec2(cell.deltaX, y2);
@@ -45,10 +49,13 @@ void NoiseGenerator2D::calculateDotProducts(GridCell& cell) {
 }
 
 float NoiseGenerator2D::interpolateXY(GridCell& cell) {
+
 	float smoothX = smoothStep(cell.deltaX);
 	float smoothY = smoothStep(cell.deltaY);
+
 	float interpolX1 = interpolate(cell.dotProducts[0], cell.dotProducts[1], smoothX);
 	float interpolX2 = interpolate(cell.dotProducts[2], cell.dotProducts[3], smoothX);
+
 	return interpolate(interpolX1, interpolX2, smoothY);
 }
 

@@ -71,6 +71,6 @@ glm::vec3 DirectionLight::getAmbientColor() const {
 	return ambientColor;
 }
 
-std::size_t DirectionLight::getIndex() const {
+std::size_t DirectionLight::get1DIndex() const {
 	return index;
 }

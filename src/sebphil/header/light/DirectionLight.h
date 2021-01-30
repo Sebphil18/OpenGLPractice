@@ -35,6 +35,6 @@ public:
 	glm::vec3 getDiffuseColor() const;
 	glm::vec3 getSpecularColor() const;
 	glm::vec3 getAmbientColor() const;
-	std::size_t getIndex() const;
+	std::size_t get1DIndex() const;
 
 };

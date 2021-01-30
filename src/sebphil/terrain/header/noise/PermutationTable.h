@@ -25,7 +25,7 @@ public:
 
 	void setSeed(int seed);
 
-	inline std::size_t getIndex(int x, int y);
+	inline std::size_t get1DIndex(int x, int y);
 	inline glm::vec2 getVector(std::size_t index);
 	inline int getLength() const;
 	inline int getSeed() const;
@@ -77,7 +77,7 @@ void PermutationTable<tablelength>::permuteValues() {
 }
 
 template<int tablelength>
-inline std::size_t PermutationTable<tablelength>::getIndex(int x, int y) {
+inline std::size_t PermutationTable<tablelength>::get1DIndex(int x, int y) {
 	return indices[indices[x] + y];
 }
 

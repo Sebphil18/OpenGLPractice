@@ -26,7 +26,7 @@ out VertexData {
 
 	vec4 gTangentLightPos;
 	vec3 gTangentPos;
-	vec3 gTangentViewDir;
+	vec3 gTangentViewPos;
 
 	mat3 tbnMatrix;
 
@@ -55,7 +55,7 @@ void main() {
 
 	mat3 tbnMatrix = transpose(mat3(T, B, N));
 	vertexOut.gTangentPos = tbnMatrix * position;
-	vertexOut.gTangentViewDir = tbnMatrix *  normalize(position - viewPos);
+	vertexOut.gTangentViewPos = tbnMatrix * viewPos;
 
 	gl_Position = projectionMatrix * viewMatrix * worldMatrix * vec4(vPosition, 1.0);
 }

@@ -85,7 +85,7 @@ void ModelLoader::addVertex(std::vector<Vertex>& vertices, aiMesh* mesh, std::si
 	vertex.normal = getVertexNormal(mesh, vertexIndex);
 	vertex.texCoord = getVertexTexCoord(mesh, vertexIndex);
 	vertex.tangent = getVertexTagent(mesh, vertexIndex);
-	vertex.bitangent = getVertexBitagent(mesh, vertexIndex);
+	vertex.bitangent = -getVertexBitagent(mesh, vertexIndex);
 
 	vertices.push_back(vertex);
 }

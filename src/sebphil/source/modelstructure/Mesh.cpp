@@ -182,6 +182,9 @@ std::string Mesh::getTexUniformName(CountIterators& iterators, TextureType texTy
 	} else if (texType == TextureType::normal) {
 		uniformName = "material.normal" +  std::to_string(iterators.normalCount);
 		iterators.normalCount++;
+	} else if (texType == TextureType::depth) {
+		uniformName = "material.depth" + std::to_string(iterators.depthCount);
+		iterators.depthCount++;
 	}
 
 	return uniformName;

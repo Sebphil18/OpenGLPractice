@@ -13,7 +13,7 @@ in VertexData {
 
 	vec4 gTangentLightPos;
 	vec3 gTangentPos;
-	vec3 gTangentViewDir;
+	vec3 gTangentViewPos;
 
 	mat3 tbnMatrix;
 
@@ -29,7 +29,7 @@ out FragmentData {
 
 	vec4 fTangentLightPos;
 	vec3 fTangentPos;
-	vec3 fTangentViewDir;
+	vec3 fTangentViewPos;
 
 	mat3 tbnMatrix;
 
@@ -48,7 +48,7 @@ void main() {
 
 		fragmentOut.fTangentLightPos = vertexIn[i].gTangentLightPos;
 		fragmentOut.fTangentPos = vertexIn[i].gTangentPos;
-		fragmentOut.fTangentViewDir = vertexIn[i].gTangentViewDir;
+		fragmentOut.fTangentViewPos = vertexIn[i].gTangentViewPos;
 
 		fragmentOut.tbnMatrix = vertexIn[i].tbnMatrix;
 
