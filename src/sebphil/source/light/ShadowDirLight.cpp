@@ -73,14 +73,11 @@ void ShadowDirLight::setUpFramebuffer() {
 
 void ShadowDirLight::update(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram, ShaderProgram& program) {
 	
-	updateProjMat();
-	updateViewMat();
 	updateLightSpaceMat(shadowProgram, program);
 
 	renderModels(models, shadowProgram);
 
 	update(program);
-
 }
 
 void ShadowDirLight::updateProjMat() {

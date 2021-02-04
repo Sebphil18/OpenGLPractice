@@ -1,6 +1,6 @@
 #version 460 core
 
-#define SEB_NUM_LAYERS 2
+#define SEB_NUM_LAYERS 1
 
 layout(location = 0) in vec3 vPosition;
 layout(location = 1) in vec3 vNormal;
@@ -15,12 +15,17 @@ layout(std140) uniform matrices {
 	mat4 normalMatrix;			// 64 * 4
 };
 
+struct Layer {
+	float maxLevel;
+	float minLevel;
+	float blend;
+	float slope;
+};
+
 uniform vec3 viewPos;
 uniform mat4 dirLightSpaceMat;
 
-uniform float layerSlope = 1;
-uniform float blend = 2;
-uniform float layerLevel = 0;
+uniform Layer layers[1];
 
 out VertexData {
 
@@ -75,46 +80,41 @@ void main() {
 void setUpWeights() {
 
 	for(unsigned int i = 0; i < SEB_NUM_LAYERS; i++) {
-		
-		/*
-		float height = fragmentIn.fPosition.y - layerLevel;
-		height = height >= 0 ? height : 0;
-		float heightFactor = 1;
-		if(layerLevel*blend != 0) {
-			heightFactor = min(height / (layerLevel * blend), 1);
-		}
 
-		float slope = 1 - dot(vec3(0, 1, 0), fragmentIn.fNormal) * layerSlope;
-		float slopeFactor = slope;
+		Layer layer = layers[i];
 
-		float weight = heightFactor + slope;
+		const float maxLevel = layer.maxLevel;
+		const float blend = layer.blend;
+		const float layerSlope = layer.slope;
 
-		if(height > layerLevel) {
-			weight = heightFactor;
-		}
-		weight = clamp(weight, 0, 1);
-		*/
-
-		float height = vertexOut.gPosition.y - layerLevel;
-		height = height >= 0 ? height : 0;
+		float height = vertexOut.gPosition.y - maxLevel;
 
 		float heightFactor = 1;
-		if(layerLevel*blend != 0) {
-			heightFactor = min(height / (layerLevel * blend), 1);
+
+		if(vertexOut.gPosition.y <= maxLevel) {
+			
+			if(maxLevel * blend != 0) {
+
+				heightFactor = abs(height / (maxLevel * blend));
+				heightFactor = 1 - clamp(heightFactor, 0, 1);
+
+			} else {
+
+				heightFactor = abs(height / (0.001 * blend));
+				heightFactor = 1 - clamp(heightFactor, 0, 1);
+
+			}
+
 		}
 
-		float slope = 1 - dot(vec3(0, 1, 0), vertexOut.gNormal) * layerSlope;
-		float slopeFactor = slope;
+		// slope = 0 when vertex is tilted 90°
+		float slope = (1 - abs(vertexOut.gNormal.y)) * layerSlope;
+		float slopeFactor = clamp(slope, 0, 1);
 
-		float weight = heightFactor + slope;
-
-		if(height > layerLevel) {
-			weight = heightFactor;
-		}
+		float weight = heightFactor + slopeFactor;
 		weight = clamp(weight, 0, 1);
 
 		vertexOut.gLayerWeights[i] = weight;
-
 	}
 
 }

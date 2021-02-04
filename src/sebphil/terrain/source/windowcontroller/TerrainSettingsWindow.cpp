@@ -23,16 +23,19 @@ void TerrainSettingsWindow::draw() {
 }
 
 void TerrainSettingsWindow::drawNoiseSettings() {
-    int* octaves = noiseGenerator->getOctavesPtr();
-    float* frq = noiseGenerator->getFrequencyPtr();
-    float* ampl = noiseGenerator->getAmplitudePtr();
-    float* frqMultiplier = noiseGenerator->getFreqMultiplierPtr();
-    float* amplMultiplier = noiseGenerator->getAmplMultiplierPtr();
+
+    int* const octaves = noiseGenerator->getOctavesPtr();
+    float* const frq = noiseGenerator->getFrequencyPtr();
+    float* const ampl = noiseGenerator->getAmplitudePtr();
+    float* const frqMultiplier = noiseGenerator->getFreqMultiplierPtr();
+    float* const amplMultiplier = noiseGenerator->getAmplMultiplierPtr();
+    float* const warpMultiplier = noiseGenerator->getWarpMultiplierPtr();
 
     addUpdateSliderFloat("frequency", frq, 0, 0.4);
     addUpdateSliderFloat("amplitude", ampl, 0, 40);
     addUpdateSliderFloat("frequency-multiplier", frqMultiplier, 0.1, 2);
     addUpdateSliderFloat("amplitude-multiplier", amplMultiplier, 0.1, 2);
+    addUpdateSliderFloat("warp-multiplier", warpMultiplier, 0, 50);
     addUpdateSliderInt("octaves", octaves, 1, 10);
 }
 

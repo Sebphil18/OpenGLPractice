@@ -17,7 +17,7 @@ in VertexData {
 
 	mat3 tbnMatrix;
 
-	float gLayerWeights[2];
+	float gLayerWeights[1];
 
 } vertexIn[];
 
@@ -35,7 +35,7 @@ out FragmentData {
 
 	mat3 tbnMatrix;
 
-	float fLayerWeights[2];
+	float fLayerWeights[1];
 
 } fragmentOut;
 

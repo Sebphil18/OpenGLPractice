@@ -3,9 +3,11 @@
 #include <iostream>
 
 Mesh::Mesh() {
+
 	initializeBuffer();
 	initializeMaterial();
 	initializeLayout();
+
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures):
@@ -19,6 +21,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>&
 }
 
 Mesh::Mesh(std::size_t verticesLength) {
+
 	vertices = std::vector<Vertex>(verticesLength, {glm::vec3(0)});
 
 	initializeBuffer();
@@ -29,12 +32,15 @@ Mesh::Mesh(std::size_t verticesLength) {
 }
 
 void Mesh::initializeBuffer() {
+
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &ibo);
+
 }
 
 void Mesh::initializeMaterial() {
+
 	glm::vec4 diffuseColor(1, 1, 1, 1);
 	glm::vec4 specularColor(1, 1, 1, 1);
 	glm::vec4 ambientColor(0.1, 0.1, 0.1, 1);
@@ -44,11 +50,13 @@ void Mesh::initializeMaterial() {
 }
 
 void Mesh::initializeLayout() {
+
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 2, GL_FLOAT, GL_FALSE });
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE }); 
 	vboLayout.addElement({ 3, GL_FLOAT, GL_FALSE });
+
 }
 
 void Mesh::setData(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<TextureContainer>& textures) {
@@ -69,6 +77,7 @@ void Mesh::setData(std::vector<Vertex> vertices, std::vector<unsigned int> indic
 }
 
 void Mesh::fillBuffer() {
+
 	bindBuffer();
 
 	vboLayout.bindLayout();
@@ -95,16 +104,20 @@ void Mesh::updateVertices(const std::vector<Vertex>& vertices, std::vector<Verte
 }
 
 void Mesh::updateBuffer(uint32_t offset, uint32_t size, const void* data) {
+
 	bindBuffer();
 	vboLayout.bindLayout();
 	updateVboData(offset, size, data);
 	unbindBuffer();
+
 }
 
 void Mesh::bindBuffer() {
+
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+
 }
 
 void Mesh::setVboData() {
@@ -122,9 +135,11 @@ void Mesh::updateVboData(uint32_t offset, uint32_t size, const void* data) {
 }
 
 void Mesh::unbindBuffer() {
+
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
 
 void Mesh::destroyBuffer() {
@@ -132,18 +147,23 @@ void Mesh::destroyBuffer() {
 }
 
 void Mesh::deleteBuffer() {
+
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
 	glDeleteBuffers(1, &ibo);
+
 }
 
 void Mesh::deleteTextures() {
+
 	for (TextureContainer texture : textures)
 		glDeleteTextures(1, &texture.id);
+
 	textures.clear();
 }
 
 void Mesh::draw(ShaderProgram& program) {
+
 	activateTextures(program);
 	loadMaterial(program);
 	drawMesh(program);
@@ -169,7 +189,7 @@ void Mesh::activateTextures(ShaderProgram& program) {
 std::string Mesh::getTexUniformName(CountIterators& iterators, TextureType texType) {
 
 	std::string uniformName;
-
+		
 	if (texType == TextureType::diffuse) {
 		uniformName = "material.diffuse" + std::to_string(iterators.diffuseCount);
 		iterators.diffuseCount++;
@@ -238,6 +258,7 @@ void Mesh::addTexture(const TextureContainer& texture) {
 	textures.push_back(texture);
 }
 
+// TODO: use std::find for finding & deleting the texture!
 void Mesh::removeTexture(unsigned int textureID) {
 	
 	for (size_t i = 0; i < textures.size(); i++) {

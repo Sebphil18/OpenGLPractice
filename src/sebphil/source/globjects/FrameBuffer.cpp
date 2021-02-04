@@ -32,6 +32,7 @@ bool FrameBuffer::framebufferIsComplete() {
 	return glCheckFramebufferStatus(glID) != GL_FRAMEBUFFER_COMPLETE;
 }
 
+// TODO: too long!
 void FrameBuffer::printErrMsg() {
 
 	unsigned int status = glCheckFramebufferStatus(glID);
