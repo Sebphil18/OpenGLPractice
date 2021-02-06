@@ -75,6 +75,8 @@ uniform float parallaxStrength = 0.08;
 uniform int minDepthLayers = 20;
 uniform int maxDepthLayers = 40;
 
+uniform float minShadowBias = 0.005;
+
 uniform float textureScaling = 0.4;
 
 in FragmentData {
@@ -304,7 +306,7 @@ float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir) {
 
 	ndcLightPosition = ndcLightPosition * 0.5 + 0.5;
 
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), minShadowBias);
 	float shadow = 0.0;
 
 	float shadowDepth = texture(shadowMap, ndcLightPosition.xy).r;

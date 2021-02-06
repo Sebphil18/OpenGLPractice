@@ -63,7 +63,7 @@ uniform samplerCube pointShadowMap;
 uniform vec3 viewPos;
 
 uniform float parallaxStrength = 0.2;
-uniform int minDepthLayers = 1;
+uniform int minDepthLayers = 20;
 uniform int maxDepthLayers = 40;
 
 in FragmentData {
@@ -88,6 +88,7 @@ vec4 getDiffuseColor(vec2 texCoord);
 vec4 getSpecularColor(vec2 texCoord);
 vec4 getAmbientColor(vec2 texCoord);
 vec2 prallaxMapping(vec2 texCoord, vec3 viewDir, float viewLength);
+float getDepth(vec2 texCoord);
 vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord);
 
 vec3 getNormal(vec2 texCoord);
@@ -102,7 +103,7 @@ void main() {
 	float viewLength = length(fragmentIn.fTangentViewPos - fragmentIn.fTangentPos);
 	vec3 viewDir = normalize(fragmentIn.fTangentViewPos - fragmentIn.fTangentPos);
 
-	vec2 texCoord = prallaxMapping(fragmentIn.fTexCoord, viewDir, viewLength); 
+	vec2 texCoord = prallaxMapping(fragmentIn.fTexCoord, viewDir, viewLength);
 
 	vec4 diffuseColor = getDiffuseColor(texCoord);
 	vec4 specularColor = getSpecularColor(texCoord);
@@ -152,14 +153,22 @@ vec4 getAmbientColor(vec2 texCoord) {
 
 // TODO: refactor!
 vec2 prallaxMapping(vec2 texCoord, vec3 viewDir, float viewLength) {
+
 	const float strength = parallaxStrength;
 	const int minLayers = minDepthLayers;
 	const int maxLayers = maxDepthLayers;
 
 	// number of layers grows exponentiell with decreasing distance to fragment
-	const float desiredLayers = exp(-viewLength/20) * maxDepthLayers;
-	const float layers = max(minDepthLayers, desiredLayers);
+	const float distantLayers = exp(-viewLength/20) * maxDepthLayers;
+	float layers = max(minDepthLayers, distantLayers);
 
+	// steeper viewing angle means more samples
+	if(viewLength < 7) {
+		const float viewLayers = (1 - dot(viewDir, vec3(0, 0, 1))) * maxDepthLayers * 1.5;
+		layers = max(distantLayers, viewLayers);
+	}
+
+	// max depth of heightfield is 1
 	const float layerDepth = 1 / layers;
 	float currentLayerDepth = 0;
 
@@ -167,24 +176,30 @@ vec2 prallaxMapping(vec2 texCoord, vec3 viewDir, float viewLength) {
 	vec2 deltaOffset = offset / layers;
 
 	vec2 currentTexCoord = texCoord;
-	float currentDepth = 1 - texture(material.depth0, currentTexCoord).r;
+	float currentDepth = getDepth(currentTexCoord);
 
 	while(currentLayerDepth < currentDepth) {
 		currentTexCoord -= deltaOffset;
-		currentDepth = 1 - texture(material.depth0, currentTexCoord).r;
+		currentDepth = getDepth(currentTexCoord);
 		currentLayerDepth += layerDepth;
 	}
 
-	// interpolate depth between last two samples
 	vec2 prevTexCoord = currentTexCoord + deltaOffset;
 
 	float underneathDepth = currentDepth - currentLayerDepth;
 	float overDepth = 1 - texture(material.depth0, prevTexCoord).r - currentLayerDepth + layerDepth;
 
 	float weight = underneathDepth / (underneathDepth - overDepth);
+
 	vec2 finalTexCoord = mix(prevTexCoord, currentTexCoord, weight);
 
 	return finalTexCoord;
+
+}
+
+float getDepth(vec2 texCoord) {
+	float depth1 = 1 - texture(material.depth0, texCoord).r;
+	return depth1;
 }
 
 vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord) {

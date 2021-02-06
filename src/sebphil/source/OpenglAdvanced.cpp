@@ -104,7 +104,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     std::vector<std::shared_ptr<Model>>& models = scene.models;
     models.push_back(sphere);
     models.push_back(terrain);
-    
+
     setSkyboxTextures(scene.skyBox);
     setUpLights(scene);
 
@@ -120,6 +120,9 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     float blend1 = 0.5;
 
     float textureScaling = 0.4;
+
+    float testVec[4] = { 1, 1, 1, 1 };
+    float minShadowBias = 0.005;
 
     // TODO: shaderwindow
     program.setUniform1f("parallaxStrength", parallaxStrength);
@@ -166,6 +169,10 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
             program.setUniform1f("textureScaling", textureScaling);
         }
 
+        if (ImGui::SliderFloat("minimal shadow-bias", &minShadowBias, 0, 0.1)) {
+            program.setUniform1f("minShadowBias", minShadowBias);
+        }
+
         ImGui::End();
 
         imgui.render();
@@ -198,11 +205,11 @@ std::shared_ptr<ModelLoader> createPreviewSphere() {
     sphere->addTexture2D("rec/textures/BrickNormal2.jpg", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/BrickDisplacement.jpg", TextureType::depth, 0);*/
 
-    /*sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock2/RockRough.png", TextureType::specular, 0);
     sphere->addTexture2D("rec/textures/rock2/RockOcc.png", TextureType::ambient, 0);
     sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);*/
+    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
 
     /*sphere->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
@@ -210,14 +217,14 @@ std::shared_ptr<ModelLoader> createPreviewSphere() {
     sphere->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);*/
 
-    sphere->addTexture2D("rec/textures/sand/SandDiff2.png", TextureType::diffuse, 0);
+    /*sphere->addTexture2D("rec/textures/sand/SandDiff2.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/sand/SandRough2.png", TextureType::specular, 0);
     sphere->addTexture2D("rec/textures/sand/SandOcc2.png", TextureType::ambient, 0);
     sphere->addTexture2D("rec/textures/sand/SandNormal2.png", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/sand/SandHeight2.png", TextureType::depth, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
+    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);*/
 
     return sphere;
 }
@@ -278,10 +285,12 @@ void setSkyboxTextures(SkyBox& skybox) {
 }
 
 void setUpLights(Scene& scene) {
+
     LightBundle& lights = scene.lights;
     DirectionLight dirLight;
-    dirLight.setDirection(glm::vec3(0.4, -1, 0));
+    dirLight.setDirection(glm::vec3(0.4, -1, 0.3));
     lights.dirLights.push_back(dirLight);
+
 }
 
 void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo) {
@@ -294,7 +303,10 @@ void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo) {
     shaders.standardProgram.setUniformVec3f("viewPos", cam.getPosition());
 
     scene.lights.update(shaders.standardProgram);
+
+    scene.shadowLights.dirLight.setPosition(cam.getPosition());
     scene.shadowLights.update(scene.models, shaders.dirShadowProgram, shaders.pointShadowProgram, shaders.standardProgram);
+
 }
 
 void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* width, int* height) {

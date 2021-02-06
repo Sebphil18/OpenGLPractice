@@ -5,7 +5,7 @@
 
 ShadowDirLight::ShadowDirLight() :
 	shadowWidth(4096), shadowHeight(4096),
-	left(-20), right(20), bottom(-20), top(20), near(-20), far(20) {
+	left(-20), right(20), bottom(-20), top(20), near(-20), far(20), position(0) {
 
 	initialize();
 
@@ -13,14 +13,14 @@ ShadowDirLight::ShadowDirLight() :
 
 ShadowDirLight::ShadowDirLight(uint32_t shadowWidth, uint32_t shadowHeight) :
 	shadowWidth(shadowWidth), shadowHeight(shadowHeight),
-	left(-20), right(20), bottom(-20), top(20), near(-20), far(20) {
+	left(-20), right(20), bottom(-20), top(20), near(-20), far(20), position(0) {
 
 	initialize();
 }
 
 ShadowDirLight::ShadowDirLight(std::size_t index) :
 	shadowWidth(4096), shadowHeight(4096),
-	left(-20), right(20), bottom(-20), top(20), near(-20), far(20),
+	left(-20), right(20), bottom(-20), top(20), near(-20), far(20), position(0),
 	DirectionLight(index) {
 
 	initialize();
@@ -41,7 +41,7 @@ void ShadowDirLight::initialize() {
 	setUpTexture();
 	setUpFramebuffer();
 
-	updateProjMat();
+	projMat = glm::ortho(left, right, bottom, top, near, far);
 	updateViewMat();
 
 }
@@ -78,14 +78,6 @@ void ShadowDirLight::update(const std::vector<std::shared_ptr<Model>>& models, S
 	renderModels(models, shadowProgram);
 
 	update(program);
-}
-
-void ShadowDirLight::updateProjMat() {
-	projMat = glm::ortho(left, right, bottom, top, near, far);
-}
-
-void ShadowDirLight::updateViewMat() {
-	viewMat = glm::lookAt(-direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 }
 
 void ShadowDirLight::updateLightSpaceMat(ShaderProgram& shadowProgram, ShaderProgram& program) {
@@ -148,6 +140,15 @@ void ShadowDirLight::setViewMat(glm::mat4 viewMat) {
 void ShadowDirLight::setDirection(glm::vec3 direction) {
 	this->direction = direction;
 	updateViewMat();
+}
+
+void ShadowDirLight::setPosition(glm::vec3 position) {
+	this->position = position;
+	updateViewMat();
+}
+
+void ShadowDirLight::updateViewMat() {
+	viewMat = glm::lookAt(-direction + position, position, glm::vec3(0, 1, 0));
 }
 
 uint32_t ShadowDirLight::getShadowMapID() const {

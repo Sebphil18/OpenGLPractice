@@ -14,6 +14,8 @@ private:
 
 	float left, right, top, bottom, near, far;
 
+	glm::vec3 position;
+
 	glm::mat4 projMat;
 	glm::mat4 viewMat;
 
@@ -24,7 +26,6 @@ private:
 	void setUpFramebuffer();
 
 	void updateViewMat();
-	void updateProjMat();
 	void updateLightSpaceMat(ShaderProgram& shadowProgram, ShaderProgram& program);
 	
 	void renderModels(const std::vector<std::shared_ptr<Model>>& models, ShaderProgram& shadowProgram);
@@ -45,6 +46,7 @@ public:
 	void setProjMat(glm::mat4 projMat);
 	void setViewMat(glm::mat4 viewMat);
 	void setDirection(glm::vec3 direction) override;
+	void setPosition(glm::vec3 position);
 
 	uint32_t getShadowMapID() const;
 	glm::mat4 getLightSpaceMat() const;
