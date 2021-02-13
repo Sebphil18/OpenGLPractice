@@ -24,20 +24,27 @@ private:
 	void createProgram();
 	uint32_t getShaderId(const std::string& shaderFile, ShaderType shaderType);
 	uint32_t getShaderTypeBinding(ShaderType shaderType);
+
 	void linkProgram();
+
 	void validateProgram();
 	bool programIsLinked();
 	bool programIsValid();
 	void deleteInvalidProgram(bool isProgramValid);
+
 	void deleteProgram();
 	void detachAllShader();
 	void deleteAllShader();
+
 	void deleteShader(unsigned int shader);
 	void deleteInvalidShader(unsigned int shader);
+
 	bool shaderIsCompiled(unsigned int shader);
 	std::string getShaderErrMsg(unsigned int shader);
 	void printShaderErrMsg(unsigned int shader);
+
 	std::string writeFileToString(std::ifstream& fileInput);
+
 	void printUniformWarning(const std::string& name);
 	bool uniformIsPresent(int location);
 	bool isLocationCached(const std::string& name);

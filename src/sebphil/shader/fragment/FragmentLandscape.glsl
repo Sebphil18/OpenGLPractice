@@ -122,7 +122,7 @@ void main() {
 	
 	float weight = fragmentIn.fLayerWeights[0];
 
-	vec2 texCoord = prallaxMapping(fragmentIn.fTexCoord * textureScaling, viewDir, viewLength); 
+	vec2 texCoord = prallaxMapping(fragmentIn.fTexCoord * textureScaling, viewDir, viewLength);
 
 	// Normal-Mapping; "normal" is in tangent-space
 	vec3 normal = getNormal(texCoord);

@@ -25,6 +25,7 @@
 #include "imgui/ImGuiInterface.h"
 #include "windowcontroller/TerrainSettingsWindow.h"
 #include "windowcontroller/HydraulicErosionWindow.h"
+#include "windowcontroller/ShaderSettingsWindow.h"
 #include "heightmap/SpecialEffect.h"
 #include "erosion/HydraulicErosion.h"
 
@@ -54,7 +55,6 @@ static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
 static void processInput(GLFWwindow* window);
 static void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-// TODO: refactor TerrainModel
 int main() {
     Application app;
     Window win("Terrain-Generation Demo", 1200, 800);
@@ -110,6 +110,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
 
     HydraulicErosionWindow erosionSettings(terrain);
     TerrainSettingsWindow terrainSettings(terrain);
+    ShaderSettingsWindow shaderSettings(&shaders.standardProgram);
 
     float parallaxStrength = 0.08;
     int minDepthLayers = 20;
@@ -138,43 +139,7 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
         imgui.newFrame();
         terrainSettings.draw();
         erosionSettings.draw();
-
-        ImGui::Begin("shader-settings");
-
-        if (ImGui::SliderFloat("parallax-strength", &parallaxStrength, 0, 1)) {
-            program.setUniform1f("parallaxStrength", parallaxStrength);
-        }
-
-        if (ImGui::SliderInt("min depth-layers", &minDepthLayers, 0, 80)) {
-            program.setUniform1i("minDepthLayers", minDepthLayers);
-        }
-
-        if (ImGui::SliderInt("max depth-layers", &maxDepthLayers, 0, 100)) {
-            program.setUniform1i("maxDepthLayers", maxDepthLayers);
-        }
-
-        if (ImGui::SliderFloat("layerSlope1", &layerSlope1, 0.01, 20)) {
-            program.setUniform1f("layers[0].slope", layerSlope1);
-        }
-
-        if (ImGui::SliderFloat("layerLevel1", &layerLevel1, -30, 50)) {
-            program.setUniform1f("layers[0].maxLevel", layerLevel1);
-        }
-
-        if (ImGui::SliderFloat("blend1", &blend1, 0.01, 1)) {
-            program.setUniform1f("layers[0].blend", blend1);
-        }
-
-        if (ImGui::SliderFloat("texture-scaling", &textureScaling, 0, 1)) {
-            program.setUniform1f("textureScaling", textureScaling);
-        }
-
-        if (ImGui::SliderFloat("minimal shadow-bias", &minShadowBias, 0, 0.1)) {
-            program.setUniform1f("minShadowBias", minShadowBias);
-        }
-
-        ImGui::End();
-
+        shaderSettings.draw();
         imgui.render();
 
         glfwGetWindowSize(window, width, height);
@@ -196,69 +161,29 @@ void setUpMatrixUbo(UniformBuffer& matrixUbo) {
 }
 
 std::shared_ptr<ModelLoader> createPreviewSphere() {
+
     std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
+
     sphere->setPosition(glm::vec3(0, 2, 0));
-    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0, 1), 3 });
-    /*sphere->addTexture2D("rec/textures/BrickDiff2.jpg", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/BrickOcc.jpg", TextureType::ambient, 0);
-    sphere->addTexture2D("rec/textures/BrickNormal2.jpg", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/BrickDisplacement.jpg", TextureType::depth, 0);*/
-
+    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0, 1), 1 });
+    
+    sphere->addTexture2D("rec/textures/moss/MossDiff.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockRough.png", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockOcc.png", TextureType::ambient, 0);
+    sphere->addTexture2D("rec/textures/moss/MossRough.png", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/moss/MossOcc.png", TextureType::ambient, 0);
+    sphere->addTexture2D("rec/textures/moss/MossNormal.png", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
+    sphere->addTexture2D("rec/textures/moss/MossHeight.png", TextureType::depth, 0);
     sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
-
-    /*sphere->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/sand2/SandOcc2.png", TextureType::ambient, 0);
-    sphere->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);*/
-
-    /*sphere->addTexture2D("rec/textures/sand/SandDiff2.png", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/sand/SandRough2.png", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/sand/SandOcc2.png", TextureType::ambient, 0);
-    sphere->addTexture2D("rec/textures/sand/SandNormal2.png", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/sand/SandHeight2.png", TextureType::depth, 0);
-    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);*/
 
     return sphere;
 }
 
 std::shared_ptr<TerrainModel> createTerrain() {
+
     std::shared_ptr<TerrainModel> terrain = std::make_shared<TerrainModel>();
-    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(1, 1, 1, 1), glm::vec4(1, 1, 1, 1), 1 });
 
-    /*terrain->addTexture2D("rec/textures/sand/SandDiff2.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/sand/SandRough2.png", TextureType::specular, 0);
-    terrain->addTexture2D("rec/textures/sand/SandOcc2.png", TextureType::ambient, 0);
-    terrain->addTexture2D("rec/textures/sand/SandNormal2.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/sand/SandHeight2.png", TextureType::depth, 0);
-    terrain->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);*/
-
-    /*terrain->addTexture2D("rec/textures/sand/SandDiff2.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/canyon/RockDiff.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/sand/SandRough2.png", TextureType::specular, 0);
-    terrain->addTexture2D("rec/textures/sand/SandOcc2.png", TextureType::ambient, 0);
-    terrain->addTexture2D("rec/textures/sand/SandNormal2.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/canyon/RockNormal.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/sand/SandHeight2.png", TextureType::depth, 0);
-    terrain->addTexture2D("rec/textures/canyon/RockHeight.png", TextureType::depth, 0);*/
-
-    /*terrain->addTexture2D("rec/textures/snow/SnowDiff.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowRockDiff.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowRough.png", TextureType::specular, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowRough.png", TextureType::ambient, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowNormal.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowRockNormal.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowHeight.png", TextureType::depth, 0);
-    terrain->addTexture2D("rec/textures/snow/SnowRockHeight.png", TextureType::depth, 0);*/
+    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.2, 0.2, 0.2, 0.2), 1 });
 
     terrain->addTexture2D("rec/textures/moss/MossDiff.png", TextureType::diffuse, 0);
     terrain->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
