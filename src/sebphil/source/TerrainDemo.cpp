@@ -56,6 +56,7 @@ static void processInput(GLFWwindow* window);
 static void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 int main() {
+
     Application app;
     Window win("Terrain-Generation Demo", 1200, 800);
 
@@ -112,22 +113,6 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     TerrainSettingsWindow terrainSettings(terrain);
     ShaderSettingsWindow shaderSettings(&shaders.standardProgram);
 
-    float parallaxStrength = 0.08;
-    int minDepthLayers = 20;
-    int maxDepthLayers = 40;
-
-    float layerSlope1 = 1;
-    float layerLevel1 = 0;
-    float blend1 = 0.5;
-
-    float textureScaling = 0.4;
-
-    float testVec[4] = { 1, 1, 1, 1 };
-    float minShadowBias = 0.005;
-
-    // TODO: shaderwindow
-    program.setUniform1f("parallaxStrength", parallaxStrength);
-
     double timeAtLastFrame = 0;
     windows[0].focus();
 
@@ -165,15 +150,15 @@ std::shared_ptr<ModelLoader> createPreviewSphere() {
     std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
 
     sphere->setPosition(glm::vec3(0, 2, 0));
-    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0, 1), 1 });
+    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 0, 1), 1 });
     
-    sphere->addTexture2D("rec/textures/moss/MossDiff.png", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
     sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/moss/MossRough.png", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
     sphere->addTexture2D("rec/textures/moss/MossOcc.png", TextureType::ambient, 0);
-    sphere->addTexture2D("rec/textures/moss/MossNormal.png", TextureType::normal, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
     sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
-    sphere->addTexture2D("rec/textures/moss/MossHeight.png", TextureType::depth, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);
     sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
 
     return sphere;
@@ -183,15 +168,15 @@ std::shared_ptr<TerrainModel> createTerrain() {
 
     std::shared_ptr<TerrainModel> terrain = std::make_shared<TerrainModel>();
 
-    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.2, 0.2, 0.2, 0.2), 1 });
+    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 1 });
 
-    terrain->addTexture2D("rec/textures/moss/MossDiff.png", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
     terrain->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/moss/MossRough.png", TextureType::specular, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
     terrain->addTexture2D("rec/textures/moss/MossOcc.png", TextureType::ambient, 0);
-    terrain->addTexture2D("rec/textures/moss/MossNormal.png", TextureType::normal, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
     terrain->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
-    terrain->addTexture2D("rec/textures/moss/MossHeight.png", TextureType::depth, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);
     terrain->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
 
     return terrain;
