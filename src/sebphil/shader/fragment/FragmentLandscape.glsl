@@ -5,6 +5,8 @@
 #define MAX_NUMBER_OF_POINTLIGHTS 10
 #define MAX_NUMBER_OF_SHADOW_POINT_LIGHTS 5
 
+#define LAYER_COUNT 1
+
 struct Material{
 	float shininess;
 
@@ -14,12 +16,19 @@ struct Material{
 	
 	sampler2D diffuse0;
 	sampler2D diffuse1;
+
 	sampler2D specular0;
+
 	sampler2D ambient0;
-	sampler2D normal;
+
+	sampler2D normal0;
+	sampler2D normal1;
+
+	sampler2D depth0;
+	sampler2D depth1;
 };
 
-struct DirectionLight{
+struct DirectionLight {
 
 	vec3 direction;
 
@@ -29,7 +38,7 @@ struct DirectionLight{
 
 };
 
-struct PointLight{
+struct PointLight {
 
 	float constantK;
 	float linearK;
@@ -60,134 +69,196 @@ uniform PointLight shadowPointLights[MAX_NUMBER_OF_SHADOW_POINT_LIGHTS];
 uniform sampler2D shadowMap;
 uniform samplerCube pointShadowMap;
 
+uniform vec3 viewPos;
+
+uniform float parallaxStrength = 0.08;
+uniform int minDepthLayers = 20;
+uniform int maxDepthLayers = 40;
+
+uniform float minShadowBias = 0.005;
+
+uniform float textureScaling = 0.4;
+
 in FragmentData {
+
 	vec3 fPosition;
 	vec3 fNormal;
+	vec2 fTexCoord;
 	vec3 fTangent;
 	vec3 fBitangent;
+
+	vec4 fTangentLightPos;
+	vec3 fTangentPos;
+	vec3 fTangentViewPos;
+
 	mat3 tbnMatrix;
-	vec4 fLightPosition;
-	vec3 fViewPos;
+
+	float fLayerWeights[1];
+
 } fragmentIn;
 
 out vec4 color;
 
-vec4 getDiffuseColor();
-vec4 getSpecularColor();
-vec4 getAmbientColor();
-vec3 getNormal(sampler2D normalMap);
-vec4 getTexture(sampler2D sampleTexture);
+vec4 getDiffuseColor(vec2 texCoord);
+vec4 getSpecularColor(vec2 texCoord);
+vec4 getAmbientColor(vec2 texCoord);
+vec2 prallaxMapping(vec2 texCoord, vec3 viewDir, float viewLength);
+float getDepth(vec2 texCoord);
+vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord);
+
+vec3 getNormal(vec2 texCoord);
+
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow);
 float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir);
-float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal);
+float calcPointShadow(vec3 lightPosition, vec3 normal);
+
+// TODO: rework parallax mapping and diffuseColor to work with layer system
 
 void main() {
 
-	vec3 position = fragmentIn.fPosition;
-	vec3 viewDir = normalize(fragmentIn.fViewPos - position);
-	vec3 normal = getNormal(material.normal);
+	float viewLength = length(fragmentIn.fTangentViewPos - fragmentIn.fTangentPos);
+	vec3 viewDir = normalize(fragmentIn.fTangentViewPos - fragmentIn.fTangentPos);
+	
+	float weight = fragmentIn.fLayerWeights[0];
 
-	vec4 diffuseColor = getDiffuseColor();
-	vec4 specularColor = getSpecularColor();
-	vec4 ambientColor = getAmbientColor();
+	vec2 texCoord = prallaxMapping(fragmentIn.fTexCoord * textureScaling, viewDir, viewLength);
+
+	// Normal-Mapping; "normal" is in tangent-space
+	vec3 normal = getNormal(texCoord);
+
+	vec4 diffuseColor = getDiffuseColor(texCoord);
+	vec4 specularColor = getSpecularColor(texCoord);
+	vec4 ambientColor = getAmbientColor(texCoord);
 
 	vec4 result = vec4(0, 0, 0, 1);
-	// DirLight
-	for(unsigned int i = 0; i < dirLightsCount; i++) {
+
+	for(unsigned int i = 0; i < dirLightsCount; i++){
 		result += getDirLightColor(dirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, false);
 	}
-	for(unsigned int i = 0; i < shadowDirLightsCount; i++) {
+
+	// ShadowDirLight
+	for(unsigned int i = 0; i < shadowDirLightsCount; i++)  {
 		result += getDirLightColor(shadowDirLights[i], normal, viewDir, diffuseColor, specularColor, ambientColor, true);
 	}
 
-	// PointLight
 	for(unsigned int i = 0; i < pointLightsCount; i++){
-		result += getPointLightColor(pointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, false);
+		result += getPointLightColor(pointLights[i], normal, viewDir, fragmentIn.fTangentPos, diffuseColor, specularColor, ambientColor, false);
 	}
+
+	// ShadowPointLight
 	for(unsigned int i = 0; i < shadowPointLightsCount; i++) {
-		result += getPointLightColor(shadowPointLights[i], normal, viewDir, position, diffuseColor, specularColor, ambientColor, true);
+		result += getPointLightColor(shadowPointLights[i], normal, viewDir, fragmentIn.fTangentPos, diffuseColor, specularColor, ambientColor, true);
 	}
 
 	color = result;
 }
 
-vec4 getDiffuseColor() {
-	vec4 diffTexture = getTexture(material.diffuse0);
-	vec4 diffTexture2 = getTexture(material.diffuse1);
-	
-	// is current height greater then sea level?
-	float height = fragmentIn.fPosition.y >= 0 ? fragmentIn.fPosition.y : 0;
-	// how much is fragment inclined? if not inclined d = 1
-	float d = dot(vec3(0, 1, 0), fragmentIn.fNormal);
+vec4 getDiffuseColor(vec2 texCoord) {
+	vec4 diffuseTexture1 = getMaterialColor(material.diffuseColor, material.diffuse0, texCoord);
+	vec4 diffuseTexture2 = getMaterialColor(material.diffuseColor, material.diffuse1, texCoord);
 
-	// weigth: when 1 -> grassTexture; when 0 -> rockTexture; higher means fewer grass; at height 8 no grass will be drawn
-	float weigth = (1 - height / 8) * d;
-	weigth = max(0, weigth);
-
-	vec4 diffuseColor = mix(diffTexture, diffTexture2, weigth);
+	vec4 diffuseColor = mix(diffuseTexture1, diffuseTexture2, fragmentIn.fLayerWeights[0]);
 
 	return diffuseColor;
 }
 
-vec4 getSpecularColor() {
-	vec4 specTexture = getTexture(material.specular0);
-	vec4 specularColor;
-
-	if(specTexture.x == 0 && specTexture.y == 0 && specTexture.z == 0) {
-		specularColor = material.specularColor;
-	} else {
-		specularColor = specTexture;
-	}
-
+vec4 getSpecularColor(vec2 texCoord) {
+	vec4 specularColor = getMaterialColor(material.specularColor, material.specular0, texCoord);
 	return specularColor;
 }
 
-vec4 getAmbientColor() {
-	vec4 ambientTexture = getTexture(material.ambient0);
-	vec4 ambientColor;
-	
-	if(ambientTexture.x == 0 && ambientTexture.y == 0 && ambientTexture.z == 0) {
-		ambientColor = material.ambientColor;
-	} else {
-		ambientColor = ambientTexture;
-	}
-
+vec4 getAmbientColor(vec2 texCoord) {
+	vec4 ambientColor = getMaterialColor(material.ambientColor, material.ambient0, texCoord);
 	return ambientColor;
 }
 
-vec3 getNormal(sampler2D normalMap) {
+// TODO: refactor!
+vec2 prallaxMapping(vec2 texCoord, vec3 viewDir, float viewLength) {
+
+	const float strength = parallaxStrength;
+	const int minLayers = minDepthLayers;
+	const int maxLayers = maxDepthLayers;
+
+	// number of layers grows exponentiell with decreasing distance to fragment
+	const float distantLayers = exp(-viewLength/20) * maxDepthLayers;
+	float layers = max(minDepthLayers, distantLayers);
+
+	// steeper viewing angle means more samples
+	if(viewLength < 7) {
+		const float viewLayers = (1 - dot(viewDir, vec3(0, 0, 1))) * maxDepthLayers * 1.5;
+		layers = max(distantLayers, viewLayers);
+	}
+
+	// max depth of heightfield is 1
+	const float layerDepth = 1 / layers;
+	float currentLayerDepth = 0;
+
+	vec2 offset = viewDir.xy * strength;
+	vec2 deltaOffset = offset / layers;
+
+	vec2 currentTexCoord = texCoord;
+	float currentDepth = getDepth(currentTexCoord);
+
+	while(currentLayerDepth < currentDepth) {
+		currentTexCoord -= deltaOffset;
+		currentDepth = getDepth(currentTexCoord);
+		currentLayerDepth += layerDepth;
+	}
+
+	vec2 prevTexCoord = currentTexCoord + deltaOffset;
+
+	float underneathDepth = currentDepth - currentLayerDepth;
+	float overDepth = 1 - texture(material.depth0, prevTexCoord).r - currentLayerDepth + layerDepth;
+
+	float weight = underneathDepth / (underneathDepth - overDepth);
+
+	vec2 finalTexCoord = mix(prevTexCoord, currentTexCoord, weight);
+
+	return finalTexCoord;
+}
+
+float getDepth(vec2 texCoord) {
+	float depth1 = 1 - texture(material.depth0, texCoord).r;
+	float depth2 = 1 - texture(material.depth1, texCoord).r;
+	return mix(depth1, depth2, fragmentIn.fLayerWeights[0]);
+}
+
+vec4 getMaterialColor(vec4 baseColor, sampler2D texture2d, vec2 texCoord) {
+	
+	vec4 textureColor = texture(texture2d, texCoord);
+	vec4 materialColor;
+
+	if(textureColor.x == 0 && textureColor.y == 0 && textureColor.z == 0) {
+		materialColor = baseColor;
+	} else {
+		materialColor = textureColor;
+	}
+
+	return materialColor;
+}
+
+vec3 getNormal(vec2 texCoord) {
+
 	vec3 normal = normalize(fragmentIn.fNormal);
-	vec3 normalMapCol = getTexture(normalMap).rgb;
+
+	vec3 normalMapCol1 = texture(material.normal0, texCoord).rgb;
+	vec3 normalMapCol2 = texture(material.normal1, texCoord).rgb;
+
+	vec3 normalMapCol = mix(normalMapCol1, normalMapCol2, fragmentIn.fLayerWeights[0]);
 
 	if(length(normalMapCol) != 0) {
 		normal = normalMapCol * 2 - 1;
-		normal = fragmentIn.tbnMatrix * normal;
 		normal = normalize(normal);
 	}
 
 	return normal;
 }
 
-// triplanar-mapping
-vec4 getTexture(sampler2D sampleTexture) {
-
-	vec3 worldPos = fragmentIn.fPosition;
-	vec3 blend = abs(fragmentIn.fNormal);
-	blend /= blend.x + blend.y + blend.z;
-	
-	vec4 projectionX = texture(sampleTexture, worldPos.yz) * blend.x;
-	vec4 projectionY = texture(sampleTexture, worldPos.xz) * blend.y;
-	vec4 projectionZ = texture(sampleTexture, worldPos.xy) * blend.z;
-
-	return projectionX + projectionY + projectionZ;
-}
-
 vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow) {
 
-	// fPosition, viewPos and light.direction can be precalculated in vertex shader using transpose of tbnMatrix - only for color calculations, not for shadow!
-	// precalculating these in vertex shader is much more efficient
-	vec3 lightDir = normalize(-light.direction);
+	// TODO: do matrix multiplication in vertexShader -> move light arrays into vertex shader and pass to fragmentShader
+	vec3 lightDir = fragmentIn.tbnMatrix * normalize(-light.direction);
 	vec3 halfway = normalize(lightDir + viewDir);
 
 	float diffuse = max(dot(normal, lightDir), 0.0);
@@ -197,16 +268,15 @@ vec4 getDirLightColor(DirectionLight light, vec3 normal, vec3 viewDir, vec4 diff
 	vec4 specularResult = spec * specularColor * vec4(light.specularColor, 1.0f);
 	vec4 ambientResult = ambientColor * vec4(light.ambientColor, 1.0f);
 
-	float shadow = castShadow == true ? calcShadow(fragmentIn.fLightPosition, normal, lightDir) : 1.0;
+	float shadow = castShadow == true ? calcShadow(fragmentIn.fTangentLightPos, normal, lightDir) : 1.0;
 
 	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
 
 vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosition, vec4 diffuseColor, vec4 specularColor, vec4 ambientColor, bool castShadow){
 
-	// fPosition, viewPos and light.position can be precalculated in vertex shader using transpose of tbnMatrix - only for color calculations, not for shadow!
-	// precalculating these in vertex shader is much more efficient
-	vec3 dirToLight = normalize(light.position - fPosition);
+	// TODO: do matrix multiplication in vertexShader -> move light arrays into vertex shader and pass to fragmentShader
+	vec3 dirToLight = fragmentIn.tbnMatrix * normalize(light.position - fragmentIn.fPosition);
 	vec3 halfway = normalize(viewDir + dirToLight);
 
 	float distanceToLight = distance(light.position, fPosition);
@@ -223,7 +293,7 @@ vec4 getPointLightColor(PointLight light, vec3 normal, vec3 viewDir, vec3 fPosit
 	//ambient
 	vec4 ambientResult = ambientColor * vec4(light.ambientColor, 1) * attentuation;
 
-	float shadow = castShadow == true ? calcPointShadow(fPosition, light.position, normal) : 1.0;
+	float shadow = castShadow == true ? calcPointShadow(light.position, normal) : 1.0;
 
 	return (diffuseResult * shadow + specularResult * shadow + ambientResult) * diffuseColor;
 }
@@ -236,7 +306,7 @@ float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir) {
 
 	ndcLightPosition = ndcLightPosition * 0.5 + 0.5;
 
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), minShadowBias);
 	float shadow = 0.0;
 
 	float shadowDepth = texture(shadowMap, ndcLightPosition.xy).r;
@@ -262,11 +332,11 @@ float calcShadow(vec4 fLightPosition, vec3 normal, vec3 lightDir) {
 	return shadow;
 }
 
-float calcPointShadow(vec3 fPosition, vec3 lightPosition, vec3 normal) {
+float calcPointShadow(vec3 lightPosition, vec3 normal) {
 	
 	float shadow = 0.0f;
 
-	vec3 lightDir = fPosition - lightPosition;
+	vec3 lightDir = fragmentIn.fPosition - lightPosition;
 
 	float currentDepth = length(lightDir);
 

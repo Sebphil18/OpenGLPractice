@@ -23,7 +23,7 @@ void ImageLoader::loadRGBA(const std::string& imgPath) {
 	img.buffer = stbi_load(imgPath.c_str(), &img.width, &img.height, &img.channels, 4);
 
 	if (!img.buffer)
-		std::cout << "ERROR::IMAGELOADER::LOADRGB::Could not load: " << imgPath << std::endl;
+		std::cout << "ERROR::IMAGELOADER::LOADRGBA::Could not load: " << imgPath << std::endl;
 }
 
 glm::vec2 ImageLoader::getDimensions() const {

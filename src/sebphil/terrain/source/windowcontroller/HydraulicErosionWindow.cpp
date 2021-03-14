@@ -4,7 +4,7 @@
 
 // note: This only works because this class also holds the specific shared_ptr, which holds the referenced HeightMap!
 HydraulicErosionWindow::HydraulicErosionWindow(const std::shared_ptr<TerrainModel>& terrain) :
-	terrain(terrain), erosion(70000), blurEffect(EffectType::blur), sharpenEffect(EffectType::sharpen), heightmap(*terrain->getHeightMapPtr())
+	terrain(terrain), erosion(10000), blurEffect(EffectType::blur), sharpenEffect(EffectType::sharpen), heightmap(*terrain->getHeightMapPtr())
 	, blurOnErosion(true), iterations(1) {
 
 	this->settings = erosion.getDropletSettingsPtr();

@@ -7,7 +7,7 @@
 #include "shader/ShaderProgram.h"
 #include <vector>
 
-enum class TextureType { none, diffuse, specular, ambient, normal};
+enum class TextureType { none, diffuse, specular, ambient, normal, depth};
 
 struct Vertex {
 	glm::vec3 position;
@@ -37,6 +37,7 @@ private:
 		unsigned int specularCount = 0;
 		unsigned int ambientCount = 0;
 		unsigned int normalCount = 0;
+		unsigned int depthCount = 0;
 	};
 
 	Material material;

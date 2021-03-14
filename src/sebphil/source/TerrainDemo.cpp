@@ -25,6 +25,7 @@
 #include "imgui/ImGuiInterface.h"
 #include "windowcontroller/TerrainSettingsWindow.h"
 #include "windowcontroller/HydraulicErosionWindow.h"
+#include "windowcontroller/ShaderSettingsWindow.h"
 #include "heightmap/SpecialEffect.h"
 #include "erosion/HydraulicErosion.h"
 
@@ -32,6 +33,7 @@ static Camera cam(1200, 800);
 static bool isFirstMouseMove = true;
 static float lastX = 0, lastY = 0;
 static double frameTime = 0;
+
 static std::vector<Window> windows;
 
 static void setWindowCallbacks(Window& window);
@@ -53,13 +55,8 @@ static void onMouseMove(GLFWwindow* window, double xpos, double ypos);
 static void processInput(GLFWwindow* window);
 static void onKeyPressed(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-// TODO: cleanUp
-// TODO: add support for multiple normal maps
-// TODO: cleanUp shader
-// TODO: add more control over shader
-// TODO: add control window for shader, textures etc.
-// TODO: optimise NoiseGenerator, optimise Erosion algorithm, 
 int main() {
+
     Application app;
     Window win("Terrain-Generation Demo", 1200, 800);
 
@@ -81,6 +78,7 @@ void setWindowCallbacks(Window& window) {
 
 // TODO: too long!
 void startRenderLoop(int* width, int* height, GLFWwindow* window) {
+
     Scene scene;
     DefaultShaders shaders;
     
@@ -107,23 +105,26 @@ void startRenderLoop(int* width, int* height, GLFWwindow* window) {
     std::vector<std::shared_ptr<Model>>& models = scene.models;
     models.push_back(sphere);
     models.push_back(terrain);
-    
+
     setSkyboxTextures(scene.skyBox);
     setUpLights(scene);
 
     HydraulicErosionWindow erosionSettings(terrain);
     TerrainSettingsWindow terrainSettings(terrain);
+    ShaderSettingsWindow shaderSettings(&shaders.standardProgram);
 
     double timeAtLastFrame = 0;
     windows[0].focus();
 
     while (!glfwWindowShouldClose(window)) {
+
         update(scene, shaders, matrixUbo);
         draw(scene, shaders, matrixUbo, width, height);
 
         imgui.newFrame();
         terrainSettings.draw();
         erosionSettings.draw();
+        shaderSettings.draw();
         imgui.render();
 
         glfwGetWindowSize(window, width, height);
@@ -145,54 +146,65 @@ void setUpMatrixUbo(UniformBuffer& matrixUbo) {
 }
 
 std::shared_ptr<ModelLoader> createPreviewSphere() {
+
     std::shared_ptr<ModelLoader> sphere = std::make_shared<ModelLoader>("rec/shapes/sphere/sphereobj.obj");
-    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(0, 0, 0, 1), glm::vec4(0.1, 0.1, 0, 1), 20 });
-    sphere->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
-    sphere->addTexture2D("rec/textures/ground/Grass2Occ.jpg", TextureType::specular, 0);
-    sphere->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
-    sphere->setPosition(glm::vec3(-8, 0, -8));
+
+    sphere->setPosition(glm::vec3(0, 2, 0));
+    sphere->getLastMesh().setMaterial({ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 0, 1), 1 });
+    
+    sphere->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
+    sphere->addTexture2D("rec/textures/moss/MossOcc.png", TextureType::ambient, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
+    sphere->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
+    sphere->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);
+    sphere->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
 
     return sphere;
 }
 
 std::shared_ptr<TerrainModel> createTerrain() {
+
     std::shared_ptr<TerrainModel> terrain = std::make_shared<TerrainModel>();
-    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1), 5 });
-    terrain->addTexture2D("rec/textures/rock/RockDiff.jpg", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/rock/GrassDiff.jpg", TextureType::diffuse, 0);
-    terrain->addTexture2D("rec/textures/rock/RockOcc.jpg", TextureType::specular, 0);
-    terrain->addTexture2D("rec/textures/rock/RockNormal.jpg", TextureType::normal, 0);
+
+    terrain->getLastMesh().setMaterial({ glm::vec4(0.8, 1, 0.2, 1), glm::vec4(1, 1, 1, 1), glm::vec4(0.1, 0.1, 0.1, 1), 1 });
+
+    terrain->addTexture2D("rec/textures/sand2/SandDiff2.png", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/rock2/RockDiff.png", TextureType::diffuse, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandRough2.png", TextureType::specular, 0);
+    terrain->addTexture2D("rec/textures/moss/MossOcc.png", TextureType::ambient, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandNormal2.png", TextureType::normal, 0);
+    terrain->addTexture2D("rec/textures/rock2/RockNormal.png", TextureType::normal, 0);
+    terrain->addTexture2D("rec/textures/sand2/SandHeight2.png", TextureType::depth, 0);
+    terrain->addTexture2D("rec/textures/rock2/RockHeight.png", TextureType::depth, 0);
 
     return terrain;
 }
 
 void setSkyboxTextures(SkyBox& skybox) {
     std::string paths[] = {
-        "rec/skyboxes/right.jpg",
-        "rec/skyboxes/left.jpg",
-        "rec/skyboxes/top.jpg",
-        "rec/skyboxes/bottom.jpg",
-        "rec/skyboxes/front.jpg",
-        "rec/skyboxes/back.jpg",
+        "rec/skyboxes/clouds/right.png",
+        "rec/skyboxes/clouds/left.png",
+        "rec/skyboxes/clouds/top.png",
+        "rec/skyboxes/clouds/bottom.png",
+        "rec/skyboxes/clouds/front.png",
+        "rec/skyboxes/clouds/back.png",
     };
     skybox.loadTextures(paths);
 }
 
 void setUpLights(Scene& scene) {
-    //ShadowLightBundle& shadowLights = scene.shadowLights;    
-    //shadowLights.enablePointLight(program);
-    //shadowLights.enableDirLight(program);
-    //shadowLights.pointLight.setPosition(glm::vec3(0, 8, 0));
-    //shadowLights.pointLight.setK(1, 0.0001, 0.00001);
 
     LightBundle& lights = scene.lights;
     DirectionLight dirLight;
-    dirLight.setDirection(glm::vec3(0.3, -0.4, 0));
+    dirLight.setDirection(glm::vec3(0.4, -1, 0.3));
     lights.dirLights.push_back(dirLight);
+
 }
 
 void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo) {
+
     matrixUbo.bind();
     matrixUbo.setElementData(0, glm::value_ptr(cam.getProjectionMatrix()));
     matrixUbo.setElementData(1, glm::value_ptr(cam.getViewMatrix()));
@@ -201,7 +213,10 @@ void update(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo) {
     shaders.standardProgram.setUniformVec3f("viewPos", cam.getPosition());
 
     scene.lights.update(shaders.standardProgram);
+
+    scene.shadowLights.dirLight.setPosition(cam.getPosition());
     scene.shadowLights.update(scene.models, shaders.dirShadowProgram, shaders.pointShadowProgram, shaders.standardProgram);
+
 }
 
 void draw(Scene& scene, DefaultShaders& shaders, UniformBuffer& matrixUbo, int* width, int* height) {
@@ -231,6 +246,7 @@ void drawModels(std::vector<std::shared_ptr<Model>>& models, UniformBuffer& matr
     }
 }
 
+// TODO: misleading name! this also sets the frameTime -> when left out the camera won't move because delta frametime becomes 0!
 void printFrameData(double& timeAtLastFrame) {
     double currentTime = glfwGetTime();
     frameTime = currentTime - timeAtLastFrame;

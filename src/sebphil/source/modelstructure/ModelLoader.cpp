@@ -38,8 +38,10 @@ bool ModelLoader::sceneIsNotValid() {
 }
 
 void ModelLoader::examineNode(aiNode* node) {
+
 	loadMeshes(node);
 	expandNode(node);
+
 }
 
 void ModelLoader::loadMeshes(aiNode* node) {
@@ -59,7 +61,6 @@ void ModelLoader::addAiMesh(aiMesh* aiMesh) {
 	
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
-	std::vector<TextureContainer> textures;
 
 	loadVertices(vertices, aiMesh);
 	loadIndices(indices, aiMesh);
@@ -81,11 +82,12 @@ void ModelLoader::loadVertices(std::vector<Vertex>& vertices, aiMesh* mesh) {
 void ModelLoader::addVertex(std::vector<Vertex>& vertices, aiMesh* mesh, std::size_t vertexIndex) {
 
 	Vertex vertex;
+
 	vertex.position = getVertexPosition(mesh, vertexIndex);
 	vertex.normal = getVertexNormal(mesh, vertexIndex);
 	vertex.texCoord = getVertexTexCoord(mesh, vertexIndex);
 	vertex.tangent = getVertexTagent(mesh, vertexIndex);
-	vertex.bitangent = getVertexBitagent(mesh, vertexIndex);
+	vertex.bitangent = -getVertexBitagent(mesh, vertexIndex);
 
 	vertices.push_back(vertex);
 }
@@ -105,24 +107,32 @@ glm::vec2 ModelLoader::getVertexTexCoord(aiMesh* mesh, std::size_t vertexIndex) 
 	glm::vec2 texCoord(0);
 
 	if (mesh->mTextureCoords[0]) {
+
 		aiVector3D texCoordVec = mesh->mTextureCoords[0][vertexIndex];
 		texCoord = convertAiVec3dToGlmVec(texCoordVec);
+
 	}
 
 	return texCoord;
 }
 
 glm::vec3 ModelLoader::getVertexTagent(aiMesh* mesh, std::size_t vertexIndex) {
+
 	aiVector3D tangent(0, 0, 0);
+
 	if (mesh->HasTangentsAndBitangents())
 		tangent = mesh->mTangents[vertexIndex];
+
 	return convertAiVec3dToGlmVec(tangent);
 }
 
 glm::vec3 ModelLoader::getVertexBitagent(aiMesh* mesh, std::size_t vertexIndex) {
+
 	aiVector3D bitangent(0, 0, 0);
+
 	if (mesh->HasTangentsAndBitangents())
 		bitangent = mesh->mBitangents[vertexIndex];
+
 	return convertAiVec3dToGlmVec(bitangent);
 }
 
@@ -143,6 +153,7 @@ void ModelLoader::loadIndices(std::vector<unsigned int>& indices, aiMesh* mesh) 
 
 }
 
+// TODO: multiple resposebilities: load material AND load textures!
 Material ModelLoader::getMeshMaterial(aiMesh* mesh) {
 
 	Material material;

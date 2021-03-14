@@ -8,6 +8,10 @@ private:
 	float freqMultiplier;
 	float amplMultiplier;
 	float offsetX, offsetY;
+	float warpMultiplier;
+
+	glm::vec2 warp(float x, float y);
+	float getNoiseValue(float x, float y);
 
 public:
 	FractalNoiseGenerator();
@@ -22,5 +26,6 @@ public:
 	float* const getAmplitudePtr();
 	float* const getAmplMultiplierPtr();
 	float* const getFreqMultiplierPtr();
+	float* const getWarpMultiplierPtr();
 
 };
