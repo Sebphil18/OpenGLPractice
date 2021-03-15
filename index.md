@@ -1,10 +1,13 @@
 # TerrainDemo - Pages
 
-This little repository should document the process of learning OpenGL with GLFW (C++). The result of this learning process will be a tiny libary for drawing scenes to a window with less effort.
+This little project was created for learning basics of OpenGL and graphics programming. As such it accomplished its goal. 
+Part of that project is an implementation of a landscape generator, which can generate some basic terrain that can be displayed using this application: <br>
+<image src="https://i.imgur.com/dkKPe6M.png" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/tnXB1L3.png" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/103XzpC.jpeg" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/vV1kOGY.jpeg" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/BprimRo.jpeg" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/02VNsRw.png" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/b9KT04x.png" width = 600 height = 600></image> <br>
 
-As a demo, a little terrain can be generated: <br>
-<image src="https://i.imgur.com/eUq8N6M.png" width=600 height=600> </image>
-<image src="https://i.imgur.com/QVdUprW.png" width=600 height=600> </image>
-<image src="https://i.imgur.com/981LxRl.png" width=600 height=600> </image>
-<image src="https://i.imgur.com/fYphzP1.png" width=600 height=600> </image>
-<image src="https://i.imgur.com/tT9WYMM.png" width=600 height=600> </image>
+The development on this project has been stopped. There might be a new, improved version of this application in the future.
