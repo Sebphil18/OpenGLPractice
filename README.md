@@ -7,3 +7,4 @@ As an exercise I implemented a landscape generator to generate and display some 
 <image src="https://i.imgur.com/BprimRo.jpeg" width = 600 height = 600></image> <br>
 <image src="https://i.imgur.com/02VNsRw.png" width = 600 height = 600></image> <br>
 <image src="https://i.imgur.com/b9KT04x.png" width = 600 height = 600></image> <br>
+<image src="https://i.imgur.com/BZXCrBx.jpg" width = 800 height = 410></image> <br>
